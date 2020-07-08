@@ -11,8 +11,8 @@ until AG10 {
 
 //---------EDIT THESE FOR LAUCH PROFILES-----------
 
-set targetOrbit to 100000.
-set targetInclination to 45.		//0 - equitorial, 90 - polar
+set targetOrbit to 85000.
+set targetInclination to 0.		//0 - equitorial, 90 - polar
 
 set hasFairing to true.			//Rodan has none, set to false
 set fairingSepAlt to 52000.
@@ -28,11 +28,11 @@ function StartUp {
 	set throt to 0.
 	lock throttle to throt.
 
-	set pitchFactor to 0.85.
+	set pitchFactor to 0.915.	//0.85.
 	set targetPitch to 90.
 	set fairingLock to false.
 	set targetHorizontalAltitude to 55000.
-	set targetApoapsis to 50000.
+	set targetApoapsis to 47500.
 	set targetAzimuth to Azimuth(targetInclination, targetOrbit).
 	
 	print targetAzimuth at (0, 2).
@@ -87,7 +87,7 @@ function MECO {
 		heading(180 - targetInclination, 0):vector).
 	wait 2.
 	set throt to 0.			//this mess here is so that FMRS wont eat your
-	wait 2.
+	wait 3.
 	stage.					//vessel into pieces.
 	wait 4.
 
@@ -138,6 +138,7 @@ function Circularize {
 }
 
 function Execute {
+	steeringmanager:resetpids().
 	set nd to nextnode.
 	set max_acc to ship:maxthrust / ship:mass.
 	set burn_duration to nd:deltav:mag/max_acc.

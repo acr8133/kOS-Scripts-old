@@ -9,14 +9,14 @@ clearscreen.
 
 set profile to "RTLS".	//asds is still WIP
 
-set targetOrbit to 100000.
-set targetInclination to 45.
+set targetOrbit to 85000.
+set targetInclination to 0.
 
 set LZ to LATLNG(-0.205715402314748,-74.4730607868913).
 // set LZ to LATLNG(-0.0921032523773939,-74.5525023044732).
 
 set reentryHeight to 25000.
-set reentryVelocity to 350.
+set reentryVelocity to 450.
 
 //------------------------------------------------------------
 
@@ -60,6 +60,8 @@ function Startup {
 	
 	set targetAzimuth to Azimuth(targetInclination, targetOrbit).
 	
+	print targetAzimuth at (0, 2).
+	
 	set throt to 0.
 	lock throttle to throt.
 	
@@ -75,18 +77,21 @@ function Startup {
 
 function Flip1 {
 	rcs on.
-	lock steering to lookdirup(heading(targetAzimuth, 35):vector, heading(180 - targetAzimuth, 0):vector).
-	wait 3.
+	lock steering to lookdirup(
+		heading(targetAzimuth, 35):vector, 
+		heading(90 + targetAzimuth, 0):vector).
+	wait 5.
 	unlock steering.
 	
-
 	set ship:control:yaw to -1.
 	wait 8.
 	set ship:control:yaw to 0.
 	
 	wait until ForwardVec() <= 10.
 	toggle AG1.
-	lock steering to lookdirup(heading(targetAzimuth, 180):vector, heading(180 - targetAzimuth, 0):vector).
+	lock steering to lookdirup(
+		heading(targetAzimuth, 180):vector, 
+		heading(90 + targetAzimuth, 0):vector).
 	
 	set throt to 1.
 	
@@ -96,15 +101,17 @@ function Boostback {
 	rcs off.
 	lock BBvec to LZ:altitudeposition(ship:altitude + 1000).		//dont mind the +1000 lol
 	
-	lock steering to lookdirup(vxcl(up:vector, ship:srfretrograde:vector:normalized), heading(180 - targetAzimuth, 0):vector).
+	lock steering to lookdirup(
+		vxcl(up:vector, ship:srfretrograde:vector:normalized), 
+		heading(90 + targetAzimuth, 0):vector).
 	wait until vxcl(up:vector, ship:srfretrograde:vector:normalized):mag <= 0.025.
-	lock steering to lookdirup(BBvec, heading(180 - targetAzimuth, 0):vector).
+	lock steering to lookdirup(BBvec, heading(90 - targetAzimuth, 0):vector).
 	
 	lock throt to max(0.2, Trajectories("dist")).
 	
 	wait until DeltaTrajectories > 0.
 	
-	wait 1.5.	//overshoots the landing zone a little bit
+	wait 1.25.	//overshoots the landing zone a little bit
 	set throt to 0.
 }
 
@@ -112,8 +119,9 @@ function Flip2 {
 	rcs on.
 	lock steering to lookdirup(
 		heading(targetAzimuth, 180):vector, 
-		heading(180 - targetAzimuth, 0):vector).
-	wait 5.
+		heading(90 + targetAzimuth, 0):vector).
+		
+	wait 7.5.
 	unlock steering.
 	
 	set ship:control:yaw to 1.
@@ -126,11 +134,11 @@ function Flip2 {
 	
 	lock steering to lookdirup(
 		heading(targetAzimuth, 60):vector, 
-		heading(180 - targetAzimuth, 0):vector).
+		heading(180, 0):vector).
 	brakes on.
 	
 	wait until ForwardVec() <= 60.
-	wait 15.
+	wait 20.
 	rcs off.
 	unlock steering.
 	
@@ -210,7 +218,7 @@ function Land
 
 function LandHeight0
 {
-	set shipAcc0 to (ship:availablethrust / ship:mass) - 9.81.
+	set shipAcc0 to (ship:availablethrust / ship:mass) - (body:mu / body:position:sqrmagnitude).
 	set distance0 to ship:verticalspeed^2 / (2 * shipAcc0).
 	
 	return distance0.
@@ -218,7 +226,7 @@ function LandHeight0
 
 function LandThrottle
 {
-	set targetThrot to (LandHeight0() / (trueAltitude - 5)).
+	set targetThrot to (LandHeight0() / (trueAltitude - 10)).
 	
 	return max(targetThrot, 0.6).
 }
@@ -226,16 +234,16 @@ function LandThrottle
 function SimSpeed
 {
 	set oldSpeed to ship:airspeed.
-	wait 0.05.
+	wait 0.1.
 	set newSpeed to ship:airspeed.
 	set deltaSpeed to (newSpeed - oldSpeed).
 	
-	return  ship:airspeed + (deltaSpeed * 50) - DragValue().
+	return  ship:airspeed + (deltaSpeed * 10) - DragValue().
 }
 
 function LandHeight1
 {
-	set shipAcc1 to (ship:availablethrust / ship:mass) - 9.81.
+	set shipAcc1 to (ship:availablethrust / ship:mass) - (body:mu / body:position:sqrmagnitude).
 	set distance1 to SimSpeed()^2 / (2 * shipAcc1).
 	
 	return distance1.
@@ -252,7 +260,7 @@ function DragValue
 	set throttleForce to ship:facing:forevector * ship:availablethrust * throttle.
 	set dragForce to netForce - gravityForce - throttleForce.
 	
-	return (dragForce:mag / 13.5). //+3.5 for safety reasons
+	return (dragForce:mag / 15). // +5 for safety reasons
 }
 
 
