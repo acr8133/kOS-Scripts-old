@@ -35,8 +35,6 @@ function StartUp {
 	set targetApoapsis to 47500.
 	set targetAzimuth to Azimuth(targetInclination, targetOrbit).
 	
-	print targetAzimuth at (0, 2).
-	
 	Main().
 }
 

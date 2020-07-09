@@ -16,7 +16,7 @@ set LZ to LATLNG(-0.205715402314748,-74.4730607868913).
 // set LZ to LATLNG(-0.0921032523773939,-74.5525023044732).
 
 set reentryHeight to 25000.
-set reentryVelocity to 450.
+set reentryVelocity to 400.
 
 //------------------------------------------------------------
 
@@ -59,8 +59,6 @@ function Startup {
 	set steeringmanager:rollts to 1.
 	
 	set targetAzimuth to Azimuth(targetInclination, targetOrbit).
-	
-	print targetAzimuth at (0, 2).
 	
 	set throt to 0.
 	lock throttle to throt.
@@ -226,7 +224,7 @@ function LandHeight0
 
 function LandThrottle
 {
-	set targetThrot to (LandHeight0() / (trueAltitude - 10)).
+	set targetThrot to (LandHeight0() / (trueAltitude - 5)).
 	
 	return max(targetThrot, 0.6).
 }
