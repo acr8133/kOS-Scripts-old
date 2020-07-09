@@ -105,7 +105,7 @@ function Boostback {
 		vxcl(up:vector, ship:srfretrograde:vector:normalized), 
 		heading(90 + targetAzimuth, 0):vector).
 	wait until vxcl(up:vector, ship:srfretrograde:vector:normalized):mag <= 0.025.
-	lock steering to lookdirup(BBvec, heading(90 - targetAzimuth, 0):vector).
+	lock steering to lookdirup(BBvec, heading(90 + targetAzimuth, 0):vector).
 	
 	lock throt to max(0.2, Trajectories("dist")).
 	
