@@ -1,6 +1,7 @@
 
 //------------------------------------------------------------
 //	READ COMMENTS FIRST,put me on the First Stage CPU :D
+//	Legend AG1 - Engine Switch, AG2 - Soot, AG4 - Strongback
 //------------------------------------------------------------
 
 clearscreen.
@@ -12,8 +13,10 @@ set profile to "RTLS".	//asds is still WIP
 set targetOrbit to 85000.
 set targetInclination to 0.
 
-set LZ to LATLNG(-0.205715402314748,-74.4730607868913).
-// set LZ to LATLNG(-0.0921032523773939,-74.5525023044732).
+set LZ to LATLNG(-0.205715402314748,-74.4730607868913).		//LZ
+// set LZ to LATLNG(0.011149277634194,-74.6862173923092).		//Helipad
+// set LZ to LATLNG(-0.0921032523773939,-74.5525023044732).		//WaterTank
+
 
 set reentryHeight to 25000.
 set reentryVelocity to 400.
@@ -42,6 +45,7 @@ function Main {
 	Reentry().
 	AtmoGNC().
 	Land().
+	shutdown.
 }
 
 function Startup {
@@ -52,11 +56,13 @@ function Startup {
 		set impactOffset to -0.0095.		
 		set landingOffset to 0.00085.
 		
-		set AoAlimiter to 1.5.
+		set AoAlimiter to 1.
 	}
 	
 	sas off. rcs off. gear off. brakes off.
-	set steeringmanager:rollts to 1.
+	set steeringmanager:rollts to 5.
+	set steeringmanager:pitchpid:kd to steeringmanager:pitchpid:kd + 5.
+	set steeringmanager:yawpid:kd to steeringmanager:yawpid:kd + 5.
 	
 	set targetAzimuth to Azimuth(targetInclination, targetOrbit).
 	
@@ -78,21 +84,24 @@ function Flip1 {
 	lock steering to lookdirup(
 		heading(targetAzimuth, 35):vector, 
 		heading(90 + targetAzimuth, 0):vector).
-	wait 5.
+	wait 2.
+	toggle AG1.
 	unlock steering.
 	
 	set ship:control:yaw to -1.
-	wait 8.
+	wait 10.
 	set ship:control:yaw to 0.
 	
-	wait until ForwardVec() <= 10.
-	toggle AG1.
+	wait until ForwardVec() <= 15.
+	
 	lock steering to lookdirup(
 		heading(targetAzimuth, 180):vector, 
 		heading(90 + targetAzimuth, 0):vector).
 	
 	set throt to 1.
 	
+	wait 2.
+	steeringmanager:resettodefault().
 }
 
 function Boostback {
@@ -105,15 +114,19 @@ function Boostback {
 	wait until vxcl(up:vector, ship:srfretrograde:vector:normalized):mag <= 0.025.
 	lock steering to lookdirup(BBvec, heading(90 + targetAzimuth, 0):vector).
 	
-	lock throt to max(0.2, Trajectories("dist")).
+	lock throt to max(0.2, Trajectories("dist") - 0.5).
 	
 	wait until DeltaTrajectories > 0.
 	
-	wait 1.25.	//overshoots the landing zone a little bit
+	wait 1.3.	//overshoots the landing zone a little bit
 	set throt to 0.
 }
 
 function Flip2 {
+	set steeringmanager:rollts to 5.
+	set steeringmanager:pitchpid:kd to steeringmanager:pitchpid:kd + 5.
+	set steeringmanager:yawpid:kd to steeringmanager:yawpid:kd + 5.
+	
 	rcs on.
 	lock steering to lookdirup(
 		heading(targetAzimuth, 180):vector, 
@@ -141,6 +154,7 @@ function Flip2 {
 	unlock steering.
 	
 	until RetroDiff("UP") >= 60.
+	steeringmanager:resettodefault().
 }
 
 function Reentry {
@@ -150,11 +164,12 @@ function Reentry {
 	rcs on.
 
 	wait until alt:radar < reentryHeight + 5000 .
-	rcs off.
+	// rcs off.
 	
 	wait until alt:radar < reentryHeight.
 	set throt to 1.
 	toggle AG2.
+	toggle AG4.
 	
 	wait until ship:verticalspeed > (reentryVelocity * -1).
 	set throt to 0.
@@ -167,10 +182,13 @@ function AtmoGNC
 	
 	lock steering to lookdirup((
 		ship:srfretrograde:vector:normalized * 10 +
-		ship:facing:topvector:normalized * AlatError * 0.5 +
-		ship:facing:starvector:normalized * AlngError * -0.5),
+		ship:facing:topvector:normalized * AlatError * 0.65 +
+		ship:facing:starvector:normalized * AlngError * -0.65),
 		heading(180, 0):vector).
 
+	wait until ship:verticalspeed > -300.
+	toggle AG4.									//experimental
+		
 	rcs on.
 	wait until alt:radar < 10000.
 	rcs off.
@@ -190,8 +208,8 @@ function Land
 	wait until ship:verticalspeed > -100.
 	
 	lock steering to lookdirup((
-		ship:facing:topvector:normalized * HlatError * -1000 + 
-		ship:facing:starvector:normalized * HlngError * 1000 + 
+		ship:facing:topvector:normalized * HlatError * -1200 + 
+		ship:facing:starvector:normalized * HlngError * 1200 + 
 		ship:up:vector * 20), 
 		heading(180, 0):vector).
 	
@@ -207,7 +225,7 @@ function Land
 	wait until ship:verticalspeed > -1.
 	lock throt to  (0.35 * ship:mass * (body:mu / body:position:sqrmagnitude) / (ship:availablethrust + 0.0001)).
 	
-	wait 2.
+	wait 1.
 	set throt to 0.
 	unlock steering.
 	unlock throttle.
@@ -223,7 +241,8 @@ function LandHeight0
 }
 
 function LandThrottle
-{
+{	
+	wait 0.
 	set targetThrot to (LandHeight0() / (trueAltitude - 5)).
 	
 	return max(targetThrot, 0.6).
@@ -258,7 +277,7 @@ function DragValue
 	set throttleForce to ship:facing:forevector * ship:availablethrust * throttle.
 	set dragForce to netForce - gravityForce - throttleForce.
 	
-	return (dragForce:mag / 15). // +5 for safety reasons
+	return (dragForce:mag / 25). // +5 for safety reasons
 }
 
 
@@ -306,7 +325,7 @@ function Trajectories {		//takes parameter 'nav'
 function PIDvalue {
 	//atmospheric gnc pid values
 	set atmP to 500.
-	set atmI to 100.
+	set atmI to 5.
 	set atmD to 8.
 	
 	set AlatP to atmP.
@@ -345,10 +364,10 @@ function PIDload {
 	lock AlatError to AlatPID:update(time:seconds, Trajectories("lat")).
 	lock AlngError to AlngPID:update(time:seconds, Trajectories("lng")).
 	
-	set HlatPID to pidloop(HlatP, HlatI, HlatD, -0.0003, 0.0003).
+	set HlatPID to pidloop(HlatP, HlatI, HlatD, -0.00035, 0.00035).
 	set HlatPID:setpoint to LZ:lat.	
 	
-	set HlngPID to pidloop(HlngP, HlngI, HlngD, -0.0003, 0.0003).
+	set HlngPID to pidloop(HlngP, HlngI, HlngD, -0.00035, 0.00035).
 	set HlngPID:setpoint to LZ:lng.
 	
 	lock HlatError to HlatPID:update(time:seconds, Trajectories("lat")).

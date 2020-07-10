@@ -3,6 +3,10 @@
 //	READ COMMENTS FIRST,put me on the Second Stage CPU :D
 //------------------------------------------------------------
 
+//BUGS:
+//	- DONT USE THE FUCKING LC39 STRONGBACK
+//
+
 clearscreen.
 
 until AG10 {
@@ -14,12 +18,10 @@ until AG10 {
 set targetOrbit to 85000.
 set targetInclination to 0.		//0 - equitorial, 90 - polar
 
-set hasFairing to true.			//Rodan has none, set to false
+set hasFairing to false.			//Rodan has none, set to false
 set fairingSepAlt to 52000.
 
 StartUp().
-
-// everything set is for 7 tons payload
 
 //-------------------------------------------------
 
@@ -53,6 +55,7 @@ function Main {
 	Circularize().
 	Execute().
 	remove nextnode.
+	shutdown.
 }
 
 function Liftoff {
@@ -85,7 +88,7 @@ function MECO {
 		heading(180 - targetInclination, 0):vector).
 	wait 2.
 	set throt to 0.			//this mess here is so that FMRS wont eat your
-	wait 3.
+	wait 2.
 	stage.					//vessel into pieces.
 	wait 4.
 
