@@ -7,8 +7,12 @@
  Current Version: V0.5
  
  Planned:
+ - Max-Q throttle down.
+ - Automatic Crew Abort System.
+ - Automatic Flight Termination System (AFTS).
  - Add launch window function.
  - Automatic rendezvous and docking for Rodan.
+ - 
  
  Bugs:
  - Currently not working when using LC-39 strongbacks.
