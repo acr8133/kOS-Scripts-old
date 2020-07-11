@@ -181,8 +181,8 @@ function AtmoGNC
 	
 	lock steering to lookdirup((
 		ship:srfretrograde:vector:normalized * 10 +
-		ship:facing:topvector:normalized * AlatError * 0.85 +
-		ship:facing:starvector:normalized * AlngError * -0.85),
+		ship:facing:topvector:normalized * AlatError * 0.875 +
+		ship:facing:starvector:normalized * AlngError * -0.875),
 		heading(180, 0):vector).
 
 	wait until ship:verticalspeed > -300.
