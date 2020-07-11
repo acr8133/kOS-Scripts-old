@@ -1,6 +1,6 @@
 
 //------------------------------------------------------------
-//	READ COMMENTS FIRST,put me on the Second Stage CPU :D
+//	READ COMMENTS FIRST,put me on the Second Stage CPU :D v0.5.1
 //------------------------------------------------------------
 
 //BUGS:
@@ -18,7 +18,7 @@ until AG10 {
 set targetOrbit to 85000.
 set targetInclination to 0.		//0 - equitorial, 90 - polar
 
-set hasFairing to false.			//Rodan has none, set to false
+set hasFairing to true.			//Rodan has none, set to false
 set fairingSepAlt to 52000.
 
 StartUp().

@@ -4,7 +4,7 @@
  into target orbit and target inclination. It also has the capability of
  landing Talon's first stage boosters into the target coordinates.
  
- Current Version: V0.5
+ Current Version: V0.5.1
  
  Planned:
  - Max-Q throttle down.

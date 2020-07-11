@@ -1,6 +1,6 @@
 
 //------------------------------------------------------------
-//	READ COMMENTS FIRST,put me on the First Stage CPU :D
+//	READ COMMENTS FIRST,put me on the First Stage CPU :D v0.5.1
 //	Legend AG1 - Engine Switch, AG2 - Soot, AG4 - Strongback
 //------------------------------------------------------------
 
