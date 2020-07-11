@@ -45,7 +45,6 @@ function Main {
 	Reentry().
 	AtmoGNC().
 	Land().
-	shutdown.
 }
 
 function Startup {
