@@ -33,7 +33,7 @@ function StartUp {
 	set pitchFactor to 0.915.	//0.85.
 	set targetPitch to 90.
 	set fairingLock to false.
-	set targetHorizontalAltitude to 55000.
+	set targetHorizontalAltitude to 50000.
 	set targetApoapsis to 47500.
 	set targetAzimuth to Azimuth(targetInclination, targetOrbit).
 	

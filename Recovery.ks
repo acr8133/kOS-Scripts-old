@@ -34,7 +34,7 @@ until currentcorecount = 1 {			//waits until Stage 2 is separated
     wait 0.1.
 }
 
-core:part:getmodule("kOSProcessor"):doEvent("Open Terminal").
+// core:part:getmodule("kOSProcessor"):doEvent("Open Terminal").
 Startup().
 
 
@@ -117,7 +117,7 @@ function Boostback {
 	
 	wait until DeltaTrajectories > 0.
 	
-	wait 1.3.	//overshoots the landing zone a little bit
+	wait 1.2.	//overshoots the landing zone a little bit
 	set throt to 0.
 }
 
@@ -181,8 +181,8 @@ function AtmoGNC
 	
 	lock steering to lookdirup((
 		ship:srfretrograde:vector:normalized * 10 +
-		ship:facing:topvector:normalized * AlatError * 0.65 +
-		ship:facing:starvector:normalized * AlngError * -0.65),
+		ship:facing:topvector:normalized * AlatError * 0.85 +
+		ship:facing:starvector:normalized * AlngError * -0.85),
 		heading(180, 0):vector).
 
 	wait until ship:verticalspeed > -300.
@@ -196,8 +196,8 @@ function AtmoGNC
 //LANDINGBURN
 function Land
 {
-	wait until alt:radar < 7000.
-	wait until trueAltitude <= LandHeight1() and LandHeight1() < 5000.
+	wait until alt:radar < 8000.
+	wait until trueAltitude <= LandHeight1() and LandHeight1() < 6000.
 	
 	lock steering to lookdirup(
 		srfretrograde:vector, 
@@ -207,8 +207,8 @@ function Land
 	wait until ship:verticalspeed > -100.
 	
 	lock steering to lookdirup((
-		ship:facing:topvector:normalized * HlatError * -1200 + 
-		ship:facing:starvector:normalized * HlngError * 1200 + 
+		ship:facing:topvector:normalized * HlatError * -1300 + 
+		ship:facing:starvector:normalized * HlngError * 1300 + 
 		ship:up:vector * 20), 
 		heading(180, 0):vector).
 	
@@ -323,9 +323,9 @@ function Trajectories {		//takes parameter 'nav'
 
 function PIDvalue {
 	//atmospheric gnc pid values
-	set atmP to 500.
-	set atmI to 5.
-	set atmD to 8.
+	set atmP to 150.
+	set atmI to 3.5.
+	set atmD to 7.
 	
 	set AlatP to atmP.
 	set AlatI to atmI.
@@ -363,10 +363,10 @@ function PIDload {
 	lock AlatError to AlatPID:update(time:seconds, Trajectories("lat")).
 	lock AlngError to AlngPID:update(time:seconds, Trajectories("lng")).
 	
-	set HlatPID to pidloop(HlatP, HlatI, HlatD, -0.00035, 0.00035).
+	set HlatPID to pidloop(HlatP, HlatI, HlatD, -0.0003, 0.0003).
 	set HlatPID:setpoint to LZ:lat.	
 	
-	set HlngPID to pidloop(HlngP, HlngI, HlngD, -0.00035, 0.00035).
+	set HlngPID to pidloop(HlngP, HlngI, HlngD, -0.0003, 0.0003).
 	set HlngPID:setpoint to LZ:lng.
 	
 	lock HlatError to HlatPID:update(time:seconds, Trajectories("lat")).
