@@ -192,8 +192,8 @@ function AtmoGNC
 function Land
 {
 	
-	core:part:getmodule("kOSProcessor"):doEvent("Open Terminal").
-	print "LIGMA" at (0, 3).
+	// core:part:getmodule("kOSProcessor"):doEvent("Open Terminal").
+	// print "LIGMA" at (0, 3).
 	
 	if ship:verticalspeed < -280 and burningLock = false {
 		set burningLock to true.

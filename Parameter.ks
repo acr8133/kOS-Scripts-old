@@ -7,7 +7,7 @@ global targetInclination is 0.
 global hasFairing is true.
 global fairingSepAlt is 52000.
 
-global payloadMass is 100.
+global payloadMass is 0.
 
 global profile is "RTLS".
 global reentryHeight is 25000.

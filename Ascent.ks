@@ -48,7 +48,7 @@ function Main {
 	Circularize().
 	Execute().
 	remove nextnode.
-	shutdown.
+	// shutdown.
 }
 
 function Liftoff {
