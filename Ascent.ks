@@ -9,21 +9,13 @@
 
 clearscreen.
 
+run "boot/Parameter.ks".
+
 until AG10 {
 	wait 1.
 }
 
-//---------EDIT THESE FOR LAUCH PROFILES-----------
-
-set targetOrbit to 85000.
-set targetInclination to 0.		//0 - equitorial, 90 - polar
-
-set hasFairing to true.			//Rodan has none, set to false
-set fairingSepAlt to 52000.
-
 StartUp().
-
-//-------------------------------------------------
 
 function StartUp {
 	//flight variables ( dont touch, might break stuff :P )
@@ -36,6 +28,7 @@ function StartUp {
 	set targetHorizontalAltitude to 50000.
 	set targetApoapsis to 47500.
 	set targetAzimuth to Azimuth(targetInclination, targetOrbit).
+	set pitchComp to ((16000 - payloadMass) / 10000) * 3.125.
 	
 	Main().
 }
@@ -78,13 +71,13 @@ function GravityTurn {
 			(90 * (1 - alt:radar / 
 			(targetApoapsis * pitchFactor)
 			))
-			, 35).		//35 is the pitch limit
+			, 35 + pitchComp).		//35 is the pitch limit
 	}
 }
 
 function MECO {
 	lock steering to lookdirup(
-		heading(targetAzimuth, 35):vector, //35 is the pitch limit
+		heading(targetAzimuth, 35 + pitchComp):vector, //35 is the pitch limit
 		heading(180 - targetInclination, 0):vector).
 	wait 2.
 	set throt to 0.			//this mess here is so that FMRS wont eat your

@@ -6,23 +6,6 @@
 
 clearscreen.
 
-//------------------------------------------------------------
-
-set profile to "RTLS".	//asds is still WIP
-
-set targetOrbit to 85000.
-set targetInclination to 0.
-
-set LZ to LATLNG(-0.205715402314748,-74.4730607868913).		//LZ
-// set LZ to LATLNG(0.011149277634194,-74.6862173923092).		//Helipad
-// set LZ to LATLNG(-0.0921032523773939,-74.5525023044732).		//WaterTank
-
-
-set reentryHeight to 25000.
-set reentryVelocity to 400.
-
-//------------------------------------------------------------
-
 local corelist is list().
 list processors in corelist.
 local startcorecount is corelist:length.
@@ -34,7 +17,7 @@ until currentcorecount = 1 {			//waits until Stage 2 is separated
     wait 0.1.
 }
 
-// core:part:getmodule("kOSProcessor"):doEvent("Open Terminal").
+
 Startup().
 
 
@@ -51,8 +34,9 @@ function Startup {
 	
 	//flight variables ( dont touch, might break stuff :P )
 	
-	if profile = "RTLS" {
-		set impactOffset to -0.0095.		
+	run "boot/Parameter.ks".
+	
+	if profile = "RTLS" {	
 		set landingOffset to 0.00085.
 		
 		set AoAlimiter to 1.
@@ -64,6 +48,17 @@ function Startup {
 	set steeringmanager:yawpid:kd to steeringmanager:yawpid:kd + 5.
 	
 	set targetAzimuth to Azimuth(targetInclination, targetOrbit).
+	
+	set landingOvershoot to ((16000 - payloadMass) / 10000000) * 5.
+	set pitchComp to ((16000 - payloadMass) / 10000) * 3.125.
+	set burnOveshoot to ((16000 - payloadMass) / 100) * (20).
+	set burningLock to false.
+	if payloadMass > 8000 {
+		set boostbackLimiter to 0.7.
+	}
+	else {
+		set boostbackLimiter to 1.
+	}
 	
 	set throt to 0.
 	lock throttle to throt.
@@ -81,7 +76,7 @@ function Startup {
 function Flip1 {
 	rcs on.
 	lock steering to lookdirup(
-		heading(targetAzimuth, 35):vector, 
+		heading(targetAzimuth, 35 + pitchComp):vector, 
 		heading(90 + targetAzimuth, 0):vector).
 	wait 2.
 	toggle AG1.
@@ -91,7 +86,7 @@ function Flip1 {
 	wait 10.
 	set ship:control:yaw to 0.
 	
-	wait until ForwardVec() <= 15.
+	wait until ForwardVec() <= 20.
 	
 	lock steering to lookdirup(
 		heading(targetAzimuth, 180):vector, 
@@ -113,11 +108,11 @@ function Boostback {
 	wait until vxcl(up:vector, ship:srfretrograde:vector:normalized):mag <= 0.025.
 	lock steering to lookdirup(BBvec, heading(90 + targetAzimuth, 0):vector).
 	
-	lock throt to max(0.2, Trajectories("dist") - 0.5).
+	lock throt to min(max(0.2, Trajectories("dist") - 0.35), boostbackLimiter).
 	
 	wait until DeltaTrajectories > 0.
 	
-	wait 1.2.	//overshoots the landing zone a little bit
+	wait 1.25.	//overshoots the landing zone a little bit
 	set throt to 0.
 }
 
@@ -131,7 +126,7 @@ function Flip2 {
 		heading(targetAzimuth, 180):vector, 
 		heading(90 + targetAzimuth, 0):vector).
 		
-	wait 7.5.
+	wait 5.
 	unlock steering.
 	
 	set ship:control:yaw to 1.
@@ -181,23 +176,33 @@ function AtmoGNC
 	
 	lock steering to lookdirup((
 		ship:srfretrograde:vector:normalized * 10 +
-		ship:facing:topvector:normalized * AlatError * 0.875 +
-		ship:facing:starvector:normalized * AlngError * -0.875),
+		ship:facing:topvector:normalized * AlatError * 1.15 +
+		ship:facing:starvector:normalized * AlngError * -1.15),
 		heading(180, 0):vector).
 
-	wait until ship:verticalspeed > -300.
+	// wait until ship:verticalspeed > -300.
 	toggle AG4.									//experimental
 		
 	rcs on.
-	wait until alt:radar < 10000.
+	wait until alt:radar < 7500.
 	rcs off.
 }
 
 //LANDINGBURN
 function Land
 {
-	wait until alt:radar < 8000.
-	wait until trueAltitude <= LandHeight1() and LandHeight1() < 6000.
+	
+	core:part:getmodule("kOSProcessor"):doEvent("Open Terminal").
+	print "LIGMA" at (0, 3).
+	
+	if ship:verticalspeed < -280 and burningLock = false {
+		set burningLock to true.
+		wait until trueAltitude <= LandHeight1() and LandHeight1() < 6000 + burnOveshoot.
+	}
+	else if ship:verticalspeed > -280 and burningLock = false{
+		set burningLock to true.
+		wait until trueAltitude <= LandHeight0() and LandHeight0() < 6000 + burnOveshoot.
+	}
 	
 	lock steering to lookdirup(
 		srfretrograde:vector, 
@@ -325,7 +330,7 @@ function PIDvalue {
 	//atmospheric gnc pid values
 	set atmP to 150.
 	set atmI to 3.5.
-	set atmD to 7.
+	set atmD to 7.5.
 	
 	set AlatP to atmP.
 	set AlatI to atmI.
@@ -358,7 +363,7 @@ function PIDload {
 	set AlatPID:setpoint to LZ:lat.	
 	
 	set AlngPID to pidloop(AlngP, AlngI, AlngD, -AoAlimiter, AoAlimiter).
-	set AlngPID:setpoint to LZ:lng - landingOffset.
+	set AlngPID:setpoint to (LZ:lng - (landingOffset + landingOvershoot)).
 	
 	lock AlatError to AlatPID:update(time:seconds, Trajectories("lat")).
 	lock AlngError to AlngPID:update(time:seconds, Trajectories("lng")).
