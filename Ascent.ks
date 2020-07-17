@@ -9,9 +9,9 @@
 
 clearscreen.
 
-run "boot/Parameter.ks".
+run "0:/boot/Parameter.ks".
 
-until AG10 {
+until AG5 {
 	wait 1.
 }
 
@@ -22,13 +22,12 @@ function StartUp {
 	set throt to 0.
 	lock throttle to throt.
 
-	set pitchFactor to 0.915.	//0.85.
+	set pitchFactor to 0.875.	//0.85.
 	set targetPitch to 90.
 	set fairingLock to false.
-	set targetHorizontalAltitude to 50000.
-	set targetApoapsis to 47500.
+	set targetHorizontalAltitude to 70000.
 	set targetAzimuth to Azimuth(targetInclination, targetOrbit).
-	set pitchComp to ((16000 - payloadMass) / 10000) * 3.125.
+	set pitchComp to ((maxPayload - payloadMass) / 10000) * 3.125.
 	
 	Main().
 }
@@ -90,7 +89,7 @@ function MECO {
 function BurnToApoapsis {
 	lock steering to lookdirup(heading(targetAzimuth, 25):vector, heading(180 - targetInclination, 0):vector).
 	rcs on.	
-	lock throt to min(max(0.4, (targetOrbit - ship:apoapsis) / (targetOrbit - 70000)), 1).
+	lock throt to min(max(0.65, (targetOrbit - ship:apoapsis) / (targetOrbit - 70000)), 1).
 
 	wait until ship:altitude > 40000.
 	lock steering to lookdirup(

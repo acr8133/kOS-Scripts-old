@@ -34,26 +34,26 @@ function Startup {
 	
 	//flight variables ( dont touch, might break stuff :P )
 	
-	run "boot/Parameter.ks".
+	run "0:/boot/Parameter.ks".
 	
 	if profile = "RTLS" {	
 		set landingOffset to 0.00085.
 		
-		set AoAlimiter to 1.
+		set AoAlimiter to 3.75.
 	}
 	
 	sas off. rcs off. gear off. brakes off.
 	set steeringmanager:rollts to 5.
-	set steeringmanager:pitchpid:kd to steeringmanager:pitchpid:kd + 5.
-	set steeringmanager:yawpid:kd to steeringmanager:yawpid:kd + 5.
+	set steeringmanager:pitchpid:kd to steeringmanager:pitchpid:kd + 3.
+	set steeringmanager:yawpid:kd to steeringmanager:yawpid:kd + 3.
 	
 	set targetAzimuth to Azimuth(targetInclination, targetOrbit).
 	
-	set landingOvershoot to ((16000 - payloadMass) / 10000000) * 5.
-	set pitchComp to ((16000 - payloadMass) / 10000) * 3.125.
-	set burnOveshoot to ((16000 - payloadMass) / 100) * (20).
-	set burningLock to false.
-	if payloadMass > 8000 {
+	set landingOvershoot to ((maxPayload - payloadMass) / 10000000) * 5.
+	set pitchComp to ((maxPayload - payloadMass) / 10000) * 3.125.
+	set burnOveshoot to ((maxPayload - payloadMass) / 100) * (20).
+	set deltaTraj to 0.
+	if payloadMass > (maxPayload / 2) {
 		set boostbackLimiter to 0.7.
 	}
 	else {
@@ -76,11 +76,12 @@ function Startup {
 function Flip1 {
 	rcs on.
 	lock steering to lookdirup(
-		heading(targetAzimuth, 35 + pitchComp):vector, 
+		heading(targetAzimuth, 35 + pitchComp + 5):vector, 
 		heading(90 + targetAzimuth, 0):vector).
 	wait 2.
 	toggle AG1.
 	unlock steering.
+	wait 0.1.
 	
 	set ship:control:yaw to -1.
 	wait 10.
@@ -105,14 +106,14 @@ function Boostback {
 	lock steering to lookdirup(
 		vxcl(up:vector, ship:srfretrograde:vector:normalized), 
 		heading(90 + targetAzimuth, 0):vector).
-	wait until vxcl(up:vector, ship:srfretrograde:vector:normalized):mag <= 0.025.
+	wait until vxcl(up:vector, ship:srfretrograde:vector:normalized):mag <= 0.03.
 	lock steering to lookdirup(BBvec, heading(90 + targetAzimuth, 0):vector).
 	
 	lock throt to min(max(0.2, Trajectories("dist") - 0.35), boostbackLimiter).
 	
-	wait until DeltaTrajectories > 0.
+	wait until DeltaTrajectories() > 0.
 	
-	wait 1.25.	//overshoots the landing zone a little bit
+	wait 0.8.	//overshoots the landing zone a little bit
 	set throt to 0.
 }
 
@@ -128,6 +129,7 @@ function Flip2 {
 		
 	wait 5.
 	unlock steering.
+	wait 0.1.
 	
 	set ship:control:yaw to 1.
 	wait 3.
@@ -176,34 +178,23 @@ function AtmoGNC
 	
 	lock steering to lookdirup((
 		ship:srfretrograde:vector:normalized * 10 +
-		ship:facing:topvector:normalized * AlatError * 1.15 +
-		ship:facing:starvector:normalized * AlngError * -1.15),
+		ship:facing:topvector:normalized * AlatError * AoAlimiter +
+		ship:facing:starvector:normalized * AlngError * -AoAlimiter),
 		heading(180, 0):vector).
 
 	// wait until ship:verticalspeed > -300.
 	toggle AG4.									//experimental
 		
 	rcs on.
-	wait until alt:radar < 7500.
+	wait until alt:radar < 4000.
 	rcs off.
 }
 
 //LANDINGBURN
-function Land
-{
+function Land {
 	
-	// core:part:getmodule("kOSProcessor"):doEvent("Open Terminal").
-	// print "LIGMA" at (0, 3).
-	
-	if ship:verticalspeed < -280 and burningLock = false {
-		set burningLock to true.
-		wait until trueAltitude <= LandHeight1() and LandHeight1() < 6000 + burnOveshoot.
-	}
-	else if ship:verticalspeed > -280 and burningLock = false{
-		set burningLock to true.
-		wait until trueAltitude <= LandHeight0() and LandHeight0() < 6000 + burnOveshoot.
-	}
-	
+	wait until trueAltitude <= LandHeight1() and LandHeight1() < 3000.// + burnOveshoot.
+
 	lock steering to lookdirup(
 		srfretrograde:vector, 
 		heading(180, 0):vector).
@@ -262,16 +253,14 @@ function SimSpeed
 	return  ship:airspeed + (deltaSpeed * 10) - DragValue().
 }
 
-function LandHeight1
-{
+function LandHeight1 {
 	set shipAcc1 to (ship:availablethrust / ship:mass) - (body:mu / body:position:sqrmagnitude).
 	set distance1 to SimSpeed()^2 / (2 * shipAcc1).
 	
 	return distance1.
 }
 
-function DragValue
-{
+function DragValue {
 	set v0 to ship:velocity:surface. set t0 to time:seconds.
 	wait 0.05.
 	set v1 to ship:velocity:surface. set t1 to time:seconds.
@@ -283,7 +272,6 @@ function DragValue
 	
 	return (dragForce:mag / 25). // +5 for safety reasons
 }
-
 
 function ForwardVec {	//returns prograde angle
 	set forwardPitch to 90 - vang(ship:up:vector, ship:facing:forevector).
@@ -328,7 +316,7 @@ function Trajectories {		//takes parameter 'nav'
 
 function PIDvalue {
 	//atmospheric gnc pid values
-	set atmP to 150.
+	set atmP to 100.
 	set atmI to 3.5.
 	set atmD to 7.5.
 	
@@ -359,11 +347,11 @@ function PIDvalue {
 }
 
 function PIDload {
-	set AlatPID to pidloop(AlatP, AlatI, AlatD, -AoAlimiter, AoAlimiter).
+	set AlatPID to pidloop(AlatP, AlatI, AlatD, -0.1, 0.1).
 	set AlatPID:setpoint to LZ:lat.	
 	
-	set AlngPID to pidloop(AlngP, AlngI, AlngD, -AoAlimiter, AoAlimiter).
-	set AlngPID:setpoint to (LZ:lng - (landingOffset + landingOvershoot)).
+	set AlngPID to pidloop(AlngP, AlngI, AlngD, -0.1, 0.1).
+	set AlngPID:setpoint to (LZ:lng - (landingOffset + (landingOvershoot / 10))).
 	
 	lock AlatError to AlatPID:update(time:seconds, Trajectories("lat")).
 	lock AlngError to AlngPID:update(time:seconds, Trajectories("lng")).
@@ -383,9 +371,9 @@ function DeltaTrajectories {	//returns distance delta
 	wait 0.1.
 	
 	set newTraj to Trajectories("dist").
-	return (newTraj - oldTraj) / 10.
+	set deltaTraj to (newTraj - oldTraj) / 10.
 	set oldTraj to newTraj.
-	
+	return deltaTraj.
 	//the booster will stop when it detects that it is getting farther rather
 	//than getting nearer every 0.1 second.
 }
