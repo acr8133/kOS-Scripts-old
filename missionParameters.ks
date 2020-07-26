@@ -1,6 +1,12 @@
-// WORK-AROUNDS
-
 HighDrag("39").
+// change according to your strongback
+
+MissionVariables(200, 100000, 0).
+// change according to your mission targets
+// parameters are Payload Mass(kg), Target Orbit(m), Target Inclination(deg).
+// example: MissionVariables(1000, 120000, 30).
+
+
 function HighDrag 
 {   // drag cube chages when switching strongbacks, this function
         //is for compensation.
@@ -39,35 +45,40 @@ function HighDrag
     }
 }
 
-// PAYLOAD
-global maxPayload is 7000.
-global payloadMass is 200.
+function MissionVariables 
+{
+    parameter pMass, tOrbit, tInclination.
 
-// SUB-ORBITAL
-global tangentAltitude is body:atm:height.
-global atmHeight is body:atm:height.
-global MECOangle is 35.
+    // PAYLOAD
+    global maxPayload is 7000.
+    global payloadMass is pMass.
 
-// ORBITAL
-global targetAp is 50000 + apComp.
-global targetInc is 0.
-global targetOrb is 100000.
+    // SUB-ORBITAL
+    global tangentAltitude is body:atm:height.
+    global atmHeight is body:atm:height.
+    global MECOangle is 35.
 
-// VESSEL
-global MaxQ is 0.17.    //set to 0.kPa
-global pitchGain is 0.9.
+    // ORBITAL
+    global targetAp is 50000 + apComp.
+    global targetInc is tInclination.
+    global targetOrb is tOrbit.
 
-// FAIRINGS
-global hasFairing is true.
-global fairingSepAlt is 50000.
+    // VESSEL
+    global MaxQ is 0.17.    //set to 0.kPa
+    global pitchGain is 0.9.
 
-// TRAJECTORY
-global landingOffset is 0.00085.    //RTLS offset
-global AoAlimiter is 8.5 - aoaComp.
+    // FAIRINGS
+    global hasFairing is true.
+    global fairingSepAlt is 50000.
 
-// RE-ENTRY
-global reentryHeight is 27500.
-global reentryVelocity is 450.
+    // TRAJECTORY
+    global landingOffset is 0.00085.    //RTLS offset
+    global AoAlimiter is 8.5 - aoaComp.
 
-// LANDING ZONE
-global LZ is LATLNG(-0.129700289080028,-74.5531947639297).
+    // RE-ENTRY
+    global reentryHeight is 27500.
+    global reentryVelocity is 450.
+
+    // LANDING ZONE
+    global LZ is LATLNG(-0.129700289080028,-74.5531947639297).
+}
