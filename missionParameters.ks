@@ -1,5 +1,5 @@
 HighDrag("39").
-// change according to your strongback
+// change according to your strongback, can be "39" for LC-39, or "40" for SLC-40
 
 MissionVariables(200, 100000, 0).
 // change according to your mission targets
