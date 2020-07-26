@@ -249,9 +249,9 @@ function PIDvalue
 	set AlngError to 0.
 	
 	// engine gimbal
-	set hvrP to 0.085.
-	set hvrI to 0.025.
-	set hvrD to 0.045.
+	set hvrP to 0.075.
+	set hvrI to 0.02.
+	set hvrD to 0.04.
 	
 	set HlatP to atmP.
 	set HlatI to atmI.
