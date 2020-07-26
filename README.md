@@ -13,7 +13,8 @@
         - Found inside the **missionParameters.ks** are some variables you can set to tune
 		the rocket for your own missions. Change the numbers beside the **HighDrag()** function
 		according to which strongback are you using **(quotation marks included)**. Easiest to
-		change are: targetOrb **(target orbit)**, targetInc **(target inclination)**, and LZ.
+		change are: targetOrb **(target orbit)**, targetInc **(target inclination)**, payloadMass, 
+		and LZ.
  # Action Groups:
 	1 - Toggle engine modes
 	2 - Soot shaders
