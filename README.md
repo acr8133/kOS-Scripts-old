@@ -25,6 +25,7 @@
 	- maybe unstable because vectors are still not normalized
 	
  • Planned:
+	- Telemetry on terminal window.
 	- Automatic Crew Abort System.
 	- Automatic Flight Termination System (AFTS).
 	- Add launch window function.
