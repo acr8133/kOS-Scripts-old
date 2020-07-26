@@ -7,10 +7,10 @@
 
  # Usage:
  - **Boot Scripts**
-		Put the **AscentScript.ks** at the second stage and **RecoveryScript.ks** at the
+		- Put the **AscentScript.ks** at the second stage and **RecoveryScript.ks** at the
 		first stage of the rocket.
  - **Mission Parameters**
-	   	Found inside the **missionParameters.ks** are some variables you can set to tune
+        - Found inside the **missionParameters.ks** are some variables you can set to tune
 		the rocket for your own missions. Change the numbers beside the **HighDrag()** function
 		according to which strongback are you using **(quotation marks included)**. Easiest to
 		change are: targetOrb **(target orbit)**, targetInc **(target inclination)**, and LZ.
