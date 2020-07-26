@@ -16,9 +16,10 @@ function Main
     // function calls
     Liftoff(25).  // pitch kick altitude
     GravityTurn(0.9).  // maxq throttle
-    MECO(). // --
-    BurnToApoapsis(). // --
-    Circularize(). // --
+    MECO().
+    BurnToApoapsis().
+    Circularize().
+    shutdown.
 
 }
 
@@ -102,11 +103,11 @@ function BurnToApoapsis
     wait 0.5.
     set throt to 1.
     lock steering to lookdirup(
-        heading(targetAzimuth, MECOangle):vector,
+        heading(targetAzimuth, MECOangle + ctrlOverride):vector,
         heading(180 - targetInc, 0):vector).
     rcs on.
     
-    wait until ship:altitude > 40000.   // will change to prograde angle
+    wait until ship:altitude > 40000.   // will change to prograde angle 
     lock throt to min(max(0.3334, (targetOrb - ship:apoapsis) / (targetOrb - atmHeight)), 1).
     lock steering to lookdirup(
         heading(targetAzimuth, targetPitch):vector,
@@ -118,7 +119,7 @@ function BurnToApoapsis
         set targetPitch to
             min(max(
             (90 * (1 - ship:apoapsis / tangentAltitude)), 
-            0), 30).    // nose is always greater than 1
+            0), (MECOangle + ctrlOverride)).
     
         // stage once if the ship has fairings
         if (ship:altitude > fairingSepAlt and fairingLock = false)
@@ -195,6 +196,8 @@ function Circularize
     lock steering to lookdirup(
         ship:prograde:vector,
         heading(180 - targetInc, 0):vector).
+    unlock throttle.
+    wait 5.
 }
 
 until false {wait 0.}

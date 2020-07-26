@@ -12,7 +12,7 @@ function HighDrag
         set MECOdelay to 5.        // MECO for delay
         set BBdelay to 0.25.        // overshoot for lower vel
         set aoaComp to 4.           // reduce gridfin actuation
-        set reentryComp to 150.     // fuel compensation
+        set reentryComp to 100.     // fuel compensation
         set pitchComp to 5.         // steeper ascent
         set apComp to 3000.        // higher apoapsis
         set throttleComp to 0.035.  // lower alt to ap ratio
