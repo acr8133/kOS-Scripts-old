@@ -12,7 +12,7 @@
  - Add launch window function.
  - Automatic rendezvous and docking for Rodan.
  - GUI for mission profiles
- - Droneship landings
+ - Droneship landings??
  - (soonTM)..
  
  Bugs:
