@@ -1,10 +1,6 @@
 // Ghidorah v0.6 -- Second Stage Script
 clearscreen.
 
-// run prerequisites
-runoncepath("0:/missionParameters.ks").
-runoncepath("0:/gncFunc").
-
 until AG10 wait 1.
 
 StartUp().
@@ -19,7 +15,7 @@ function Main
 
     // function calls
     Liftoff(25).  // pitch kick altitude
-    GravityTurn(0.885).  // maxq throttle
+    GravityTurn(0.9).  // maxq throttle
     MECO(). // --
     BurnToApoapsis(). // --
     Circularize(). // --
@@ -28,6 +24,10 @@ function Main
 
 function StartUp 
 {
+    // run prerequisites
+    runoncepath("0:/missionParameters.ks").
+    runoncepath("0:/gncFunc").
+
     // control variables
     set throt to 0.
     lock throttle to throt.
@@ -36,7 +36,7 @@ function StartUp
     set targetAzimuth to Azimuth(targetInc, targetOrb).
     set ctrlOverride to 
         ((maxPayload - payloadMass) / 10000) * 3.125.
-    set ctrlMax to 40.
+    set ctrlMax to 35.
 
     // init
     set targetPitch to 90.
@@ -67,23 +67,23 @@ function GravityTurn
         wait 0.
 
         if (ship:q > MaxQ)
-            set throt to MaxQThrottle.
+            set throt to (MaxQThrottle - throttleComp).
         else
-            set throt to 1.
+            set throt to (0.985 - throttleComp).
 
         set targetPitch to 
             max(
             (90 * (1 - alt:radar /
             (targetAp * pitchGain)
             ))
-            , ctrlMax + ctrlOverride).
+            , MECOangle + ctrlOverride).
     }
 }
 
 function MECO
 {
     lock steering to lookdirup(
-        heading(targetAzimuth, ctrlMax + ctrlOverride):vector,
+        heading(targetAzimuth, MECOangle + ctrlOverride):vector,
         heading(180 - targetInc, 0):vector).
 
     // staging sequence
@@ -92,7 +92,7 @@ function MECO
     wait 1.
     stage.
     rcs on.
-    wait 4.
+    wait 3 + (BBdelay / 2).
 }
 
 function BurnToApoapsis
@@ -100,15 +100,14 @@ function BurnToApoapsis
     // engine sequence
     set throt to 0.025.
     wait 0.5.
+    set throt to 1.
     lock steering to lookdirup(
-        heading(targetAzimuth, 25):vector,
+        heading(targetAzimuth, MECOangle):vector,
         heading(180 - targetInc, 0):vector).
     rcs on.
     
-    until ship:altitude > 45000   // will change to prograde angle
-    {
-        set throt to min(max(0.6, (targetOrb - ship:apoapsis) / (targetOrb - atmHeight)), 1).
-    }
+    wait until ship:altitude > 40000.   // will change to prograde angle
+    lock throt to min(max(0.3334, (targetOrb - ship:apoapsis) / (targetOrb - atmHeight)), 1).
     lock steering to lookdirup(
         heading(targetAzimuth, targetPitch):vector,
         heading(180 - targetInc, 0):vector).
@@ -119,7 +118,7 @@ function BurnToApoapsis
         set targetPitch to
             min(max(
             (90 * (1 - ship:apoapsis / tangentAltitude)), 
-            1), 25).    // nose is always greater than 1
+            0), 30).    // nose is always greater than 1
     
         // stage once if the ship has fairings
         if (ship:altitude > fairingSepAlt and fairingLock = false)
@@ -151,21 +150,23 @@ function Circularize
     add circNode.
 
     //maneuver timing and preparation
-    steeringmanager:resetpids().
+    steeringmanager:resettodefault().
     set nd to nextnode.
     set maxAcc to ship:maxthrust / ship:mass.
     set burnDuration to nd:deltav:mag / maxAcc.
     wait until nd:eta <= (burnDuration / 2 + 60).
 
-    set nv to nd:deltav.
+    lock nv to nd:deltav:normalized.
+    set dv0 to nd:deltav.
     lock steering to lookdirup(
         nv, 
         heading(180 - targetInc, 0):vector).
     wait until vang(nv, ship:facing:vector) < 0.25.
 
     // maneuver execution
-    wait until nd:eta <= (burnDuration / 2).
+    wait until nd:eta <= (burnDuration).
     rcs off.
+    wait until nd:eta <= (burnDuration / 2).
     set done to false.
     
     until done 
@@ -182,14 +183,18 @@ function Circularize
 
         if (nd:deltav:mag < 0.1)
         {
-            wait until vdot(nd: nd:deltav) < 0.5.
+            wait until vdot(dv0, nd:deltav) < 0.5.
             set throt to 0.
             set done to true.
         }
     }
 
-    remove nextNode.
+    remove nextnode.
+    set throt to 0.
     set ship:control:pilotmainthrottle to 0.
+    lock steering to lookdirup(
+        ship:prograde:vector,
+        heading(180 - targetInc, 0):vector).
 }
 
 until false {wait 0.}
