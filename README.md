@@ -27,7 +27,7 @@
 - Automatic Crew Abort System.
 - Automatic Flight Termination System (AFTS).
 - Add launch window function.
-- Automatic rendezvous and docking for Rodan.
+- Automatic rendezvous and docking for Rodan and Gigan.
 - GUI for mission profiles	
 - Droneship landings??	
 - (soonTM)..
