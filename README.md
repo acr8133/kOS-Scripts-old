@@ -10,7 +10,7 @@
 	- Put the **AscentScript.ks** at the second stage and **RecoveryScript.ks** at the
 	first stage of the rocket.
  - **Mission Parameters**
-        - Found inside the **missionParameters.ks** are some variables you can set to tune
+	- Found inside the **missionParameters.ks** are some variables you can set to tune
 	the rocket for your own missions. You can refer to the instructions inside the
 	**missionParameters.ks** for tuning the script to your own KSP missions.
 	
