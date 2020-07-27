@@ -7,14 +7,13 @@
 
  # Usage:
  - **Boot Scripts**
-		- Put the **AscentScript.ks** at the second stage and **RecoveryScript.ks** at the
-		first stage of the rocket.
+	- Put the **AscentScript.ks** at the second stage and **RecoveryScript.ks** at the
+	first stage of the rocket.
  - **Mission Parameters**
         - Found inside the **missionParameters.ks** are some variables you can set to tune
-		the rocket for your own missions. Change the numbers beside the **HighDrag()** function
-		according to which strongback are you using **(quotation marks included)**. Easiest to
-		change are: targetOrb **(target orbit)**, targetInc **(target inclination)**, payloadMass, 
-		and LZ.
+	the rocket for your own missions. You can refer to the instructions inside the
+	**missionParametes.ks** for tuning the script to your own KSP missions.
+	
  # Action Groups:
 	1 - Toggle engine modes
 	2 - Soot shaders
