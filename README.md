@@ -12,7 +12,7 @@
  - **Mission Parameters**
         - Found inside the **missionParameters.ks** are some variables you can set to tune
 	the rocket for your own missions. You can refer to the instructions inside the
-	**missionParametes.ks** for tuning the script to your own KSP missions.
+	**missionParameters.ks** for tuning the script to your own KSP missions.
 	
  # Action Groups:
 	1 - Toggle engine modes
