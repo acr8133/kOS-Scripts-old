@@ -36,14 +36,25 @@ Main().
 function Main 
 {
 	// function calls
-    Flip1().
-    Boostback().
-	Flip2().
-	Reentry().
-	AtmoGNC().
-	Land().
-	set AG9 to false.
-	shutdown.
+	if (profile = "RTLS")
+	{	
+		Flip1(0.9, 180, 20, 45).
+		Boostback().
+		Flip2(60).
+		Reentry1(60).
+		AtmoGNC().
+		Land().
+		set AG9 to false.
+		shutdown.
+	}
+	else
+	{
+		Flip1(0.55, 145, 80, 85).	// parameters x,y,z - rcs until z, counter at y, stop at x
+		Reentry1(35).
+		AtmoGNC().
+		Land().
+	}
+    
 }
 
 function StartUp 
@@ -60,7 +71,6 @@ function StartUp
 
     // profile variables
 
-    // set targetAzimuth to Azimuth((eqtrDir * targetInc), targetOrb).
     set landingOvershoot to ((maxPayload - payloadMass) / 10000000) * 5.
 	set ctrlOverride to ((maxPayload - payloadMass) / 10000) * 3.125.
 	set burnOvershoot to ((maxPayload - payloadMass) / 10000) * (1/2).
@@ -77,35 +87,44 @@ function StartUp
 
 function Flip1 
 {
-	// core:part:getmodule("kOSProcessor"):doEvent("Open Terminal").
-	// print targetAzimuth at (0, 1).
+	parameter flipPower, finalAttitude, unlockAngle, waitAngle. 
+
     rcs on.
     lock steering to lookdirup(
         heading(targetAzimuth, MECOangle):vector,
         heading(90 + targetAzimuth, 0):vector).
-    wait 5.
+    wait 3.
     toggle AG1. // switch engine mode to 3
     unlock steering.
     wait 0.1.
 
-    set ship:control:yaw to -1.
+    set ship:control:yaw to -1 * flipPower.
     wait 5.
-    wait until ForwardVec() <= 45.	
-    set ship:control:yaw to 0.
-	set throt to 0.25.
+	if (profile = "ASDS")
+		wait until ForwardVec() >= 75.
 
-    wait until ForwardVec() <= 20.
-    lock steering to lookdirup(
-        heading(targetAzimuth, 180):vector,
+	if (profile = "ASDS") { brakes on. }
+    until ForwardVec() <= waitAngle
+	{
+		wait 0.
+		set ship:control:roll to (RollAlign()).
+	}
+
+    set ship:control:neutralize to true.
+	if (profile = "RTLS") { set throt to 0.25. }
+
+    wait until ForwardVec() <= unlockAngle.
+	lock steering to lookdirup(
+        heading(targetAzimuth, finalAttitude):vector,
         heading(90 + targetAzimuth, 0):vector).
-    set throt to 1.
 
-    wait 2.
+    if (profile = "RTLS") { set throt to 1. }
+    wait 3.
     steeringmanager:resettodefault().
 }
 
 function Boostback  
-{   // will be changed to use pro-nav instead of retro-target
+{
     rcs off.
     lock BBvec to LZ:altitudeposition(ship:altitude + 750).
     lock steering to lookdirup(
@@ -120,12 +139,14 @@ function Boostback
     lock throt to max(0.125, Trajectories("dist") - 0.05).
 
     wait until DeltaTrajectories() > 0.
-    wait (1.4 + burnOvershoot).   // overshoot landing zone
+    wait (1.5 + burnOvershoot).   // overshoot landing zone
     set throt to 0.
 }
 
 function Flip2 
 {
+	parameter holdAngle.
+
 	set steeringmanager:rollts to 5.
 	set steeringmanager:pitchpid:kd to steeringmanager:pitchpid:kd + 5.
 	set steeringmanager:yawpid:kd to steeringmanager:yawpid:kd + 5.
@@ -148,22 +169,23 @@ function Flip2
 	wait until ForwardVec() <= 75.
 	
 	lock steering to lookdirup(
-		heading(targetAzimuth, 60):vector, 
+		heading(targetAzimuth, holdAngle):vector, 
 		heading(180, 0):vector).
-	brakes on.
 	
-	wait until ForwardVec() <= 60.
+	wait until ForwardVec() <= holdAngle.
 	wait 10.
 	// rcs off.
 	sas on.
 	unlock steering.
-	
-	until RetroDiff("UP") >= 60.
-	steeringmanager:resettodefault().
 }
 
-function Reentry 
+function Reentry1
 {
+	parameter holdAngle.
+
+	wait until RetroDiff("UP") >= holdAngle.
+	steeringmanager:resettodefault().
+
 	lock steering to lookdirup(
 		ship:srfretrograde:vector:normalized, 
 		heading(180, 0):vector).
@@ -178,7 +200,7 @@ function Reentry
 	toggle AG2.
 	toggle AG4.
 	
-	wait until ship:verticalspeed > -reentryVelocity.
+	wait until ship:airspeed < reentryVelocity.
 	set throt to 0.
 }
 
@@ -207,7 +229,8 @@ function AtmoGNC
 
 function Land 
 {
-	until trueAltitude <= LandHeight1() and LandHeight1() < 5000
+	wait until ship:airspeed < 280.	// wait until outside transonic
+	until trueAltitude <= LandHeight1() and LandHeight1() < 3750
 	{
 		wait 0.
 		print LandHeight1() + "          " at (0, 2).
@@ -236,8 +259,8 @@ function Land
 	wait until ship:verticalspeed > -50.
 	
 	lock steering to lookdirup((
-		ship:facing:topvector:normalized * HlatError * -1000 + 
-		ship:facing:starvector:normalized * HlngError * 1000 + 
+		ship:facing:topvector:normalized * HlatError * -900 + 
+		ship:facing:starvector:normalized * HlngError * 900 + 
 		ship:up:vector * 20), 
 		heading(180, 0):vector).
 	
@@ -261,6 +284,16 @@ function Land
 	wait 5.
 }
 
+// ROLL ALIGNMENT MODULE
+
+function RollAlign
+{
+	wait 0.
+	print vang(ship:facing:topvector, body:position) at (0, 9).
+	print "ALIGNING!" + ForwardVec() at (0, 10).
+	return rollPID:update(time:seconds, vang(ship:facing:topvector, body:position)).
+}
+
 // PID VALUES SETUP
 
 function PIDvalue 
@@ -281,7 +314,7 @@ function PIDvalue
 	set AlngError to 0.
 	
 	// engine gimbal
-	set hvrP to 0.075.
+	set hvrP to 0.07.
 	set hvrI to 0.02.
 	set hvrD to 0.04.
 	
@@ -298,6 +331,9 @@ function PIDvalue
 
 function PIDload 
 {
+	set rollPID to pidloop(0.3, 0, 0.6, -1, 1).
+	set rollPID:setpoint to (90).
+
 	set AlatPID to pidloop(AlatP, AlatI, AlatD, -0.1, 0.1).
 	set AlatPID:setpoint to LZ:lat.	
 	

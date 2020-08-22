@@ -266,11 +266,10 @@ function ExecNode
         isRCS is false, 
         ctrlfacing is "fore".   // either "fore" or "top"
 	rcs off.
-    local initDirCorr is 1.
 
 	// maneuver timing and preparation
     steeringmanager:resettodefault().
-    set steeringmanager:maxstoppingtime to 7.5.
+    set steeringmanager:maxstoppingtime to 3.5.
     lock normVec to vcrs(ship:prograde:vector, body:position).
     lock steering to lookdirup(
         ship:prograde:vector,
@@ -297,7 +296,7 @@ function ExecNode
     else
     {
         lock steering to lookdirup(
-            ship:prograde:vector, // should always point pro, rev. body if pointing retro
+            ship:prograde:vector, // should always point pro
             normVec). //should always point starboard
         }
 
@@ -318,34 +317,14 @@ function ExecNode
         if (isRCS = false)
             set throt to min(nd:deltav:mag / maxAcc, 1).
         else
-        {
-            if (ctrlfacing = "fore") { set ship:control:fore to 1. }
-            else { set ship:control:top to -1 * DirCorr(). }
-        }
-            
-
-        if ((ctrlfacing = "top" and vdot(vxcl(ship:prograde:vector:normalized, nv), nd:deltav) < 0.1)) 
-        {
-            set throt to 0.
-            set ship:control:neutralize to true.
-            break.
-        }
-        else if ((ctrlfacing = "fore" and vdot(nv, nd:deltav) < 0.1)) 
-        {
-            set throt to 0.
-            set ship:control:neutralize to true.
-            break.
-        }
+            RCSTranslate(nv).
 
         if (nd:deltav:mag < 0.1)
         {
-            wait until vdot(dv0, nd:deltav) < 0.5.
             set ship:control:neutralize to true.
             set throt to 0.
             set burnDone to true.
         }   
-
-        print vdot(nv, nd:deltav) at (0, 10).
     }
 
     remove nextnode.
@@ -375,7 +354,7 @@ function BurnLengthRCS
 {
     parameter thrust, dv.
 
-    local rcsship is ship:partstagged("gigan")[0].
+    local rcsship is ship:partstagged("Cmodule")[0].
     local mod is rcsship:getmodule("ModuleRCSFX").
     local isp is mod:getfield("rcs isp").
     local g is constant:g0.

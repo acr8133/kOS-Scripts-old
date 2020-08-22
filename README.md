@@ -3,7 +3,7 @@
  Tundra Exploration's Ghidorah launch system. The script is capable of bringing payload
  into target orbit and target inclination. It also has the capability of
  landing Ghidorah 9's first stage boosters into the target coordinates.
-  **Current Version: V0.7**
+  **Current Version: V0.7.3**
 
  # Usage:
  - **Boot Scripts**
@@ -19,10 +19,13 @@
 	1 - Toggle engine modes
 	2 - Soot shaders
 	3 - Strongback retract
+	4 - Rodan Shroud
 	
  # What's new!
+ - ASDS and Full Expended mode (early experimental).
  - Instantaneous launch window timing.
- - New rendezvous and docking sequence for Gigan.
+ - New rendezvous and docking sequence for Gigan and Rodan.
+ - Reworked some parts of the docking script.
 	
  # Bugs:
  - flip maneuver for first stage is still kinda wonky
@@ -30,7 +33,5 @@
  # Planned:
 - Automatic Crew Abort System.
 - Automatic Flight Termination System (AFTS).
-- Automatic rendezvous and docking for Rodan.
 - GUI for mission profiles	
-- Droneship landings??	
 - (soonTM)..

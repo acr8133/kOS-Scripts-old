@@ -20,30 +20,43 @@ function Main
     MECO().
     BurnToApoapsis().
     Circularize().
-    if ((payloadType = "gigan" or payloadType = "rodan") and hasTarget = true)
+    SepSequence().
+    if (payloadType = "gigan" or payloadType = "rodan")
     {   
-        MatchPlanes().
-        Burn1().
-        Burn2().
-        MainDocking().
-        wait 10.
-        shutdown.
+        if (hasTarget = true)
+        {
+            MatchPlanes().
+            Burn1().            //---> Hohmann Transfer
+            Burn2().            //----------^
+            MainDocking().
+            wait 10.
+            shutdown.
+        }
     }
-    else    
-        shutdown.
+    else  { shutdown. }  
+        
 }
 
 function MainDocking
 {
     rcs on.
-    lock steering to lookdirup(
-    ship:prograde:vector,
-    vcrs(ship:prograde:vector, body:position)).
-    wait 15.
-
-    HaltRendezvous(0.5).
-    Rendezvous(500, 20).        // approach the target until inside physics bubble
-    Rendezvous(170, 5).         // approach the target until target is unpacked
+    if (payloadType = "rodan")
+    {
+        lock steering to lookdirup(
+            ship:prograde:vector,
+            vcrs(ship:prograde:vector, body:position)).
+    }
+    else
+    {
+        lock steering to lookdirup(
+            ship:prograde:vector,
+            vcrs(ship:retrograde:vector, body:position)).
+    }
+    
+    wait 10.
+    HaltRendezvous(0.5).            // cancel all relative velocity first
+    Rendezvous(500, 15, 1).       // approach the target until inside physics bubble
+    Rendezvous(170, 5, 0.5).        // approach the target until target is unpacked
 
     set shipPort to ship:partstagged("APAS")[0].
     set targetPort to target:partstagged("APAS")[0].
@@ -125,7 +138,7 @@ function MECO
         heading(180 - (DirCorr() * targetInc), 0):vector).
 
     // staging sequence
-    set throt to 0.5.
+    set throt to 0.1.
     wait 2.
     set throt to 0.
     wait 1.
@@ -146,7 +159,10 @@ function BurnToApoapsis
     rcs on.
     
     wait until ship:altitude > 35000.   // will change to prograde angle 
-    lock throt to min(max(0.333, (targetOrb - ship:apoapsis) / (targetOrb - atmHeight)), 1).
+    lock throt to min(
+        max(0.333, (targetOrb - ship:apoapsis) / (targetOrb - atmHeight)) + 
+        max(0, ((60 - eta:apoapsis) * 0.075))
+    , 1).
     lock steering to lookdirup(
         heading(targetAzimuth, targetPitch):vector,
         heading(180 - (DirCorr() * targetInc), 0):vector).
@@ -160,17 +176,17 @@ function BurnToApoapsis
             0), (MECOangle + ctrlOverride)).
     
         // stage once if the ship has fairings
-        if (ship:altitude > fairingSepAlt and fairingLock = false)
+        if (payloadType = "gigan" or payloadType = "fairing" or payloadType = "fairings") 
         {
             wait 0.
-            if (payloadType = "gigan" or payloadType = "fairing" or payloadType = "fairings") 
+            if (ship:altitude > fairingSepAlt and fairingLock = false)
             {
                 stage.
                 set fairingLock to true.
                 wait 0.
             }
             else
-            { stage. }
+            { wait 0. }
         }
     }
 
@@ -191,26 +207,39 @@ function Circularize
     ExecNode().
 }
 
-function MatchPlanes
+function SepSequence
 {
-    // staging sequence
     stage.      // separate to second stage.
-    wait 5.
-    if (payloadType = "gigan")
+    wait 10.
+
+    if (payloadType = "gigan")  // gigan has extra fairings
     {
         stage.
         wait 3.
         panels on.  rcs off.
     }
+    else if (payloadType = "rodan") // rodan has a shroud
+    {
+        AG4 on.
+    }
+    else
+    {
+        wait 5.
+        stage.
+    }
+}
+
+function MatchPlanes
+{
+    // staging sequence
     if (hastarget = false)
         wait until hasTarget = true.
-    
     wait until TimeToNode() < 30 + BurnLengthRCS(1, NodePlaneChange()).
 
     set matchNode to node(time:seconds + TimeToNode(), 0, (NodePlaneChange()* PlaneCorr()), 0).
     add matchNode.
 
-    ExecNode(4, true, "top").
+    ExecNode(8, true, "top").
 }
 
 function PlaneCorr
@@ -225,7 +254,7 @@ function Burn1
     set burn1Node to node(time:seconds + PhaseAngle(), 0, 0, Hohmann("raise")).
     add burn1Node.
 
-    ExecNode(4, true).
+    ExecNode(8, true).
 }
 
 function Burn2
@@ -234,12 +263,12 @@ function Burn2
     set burn1Node to node(time:seconds + eta:apoapsis, 0, 0, Hohmann("circ")).
     add burn1Node.
 
-    ExecNode(4, true).
+    ExecNode(8, true).
 }
 
 function Rendezvous
 {
-    parameter tarDist, tarVel.
+    parameter tarDist, tarVel, vecThreshold is 0.1.
 
     local relVel is 0.
     local rendezvousVec is 0.
@@ -247,13 +276,14 @@ function Rendezvous
     lock relVel to ship:velocity:orbit - target:velocity:orbit.
     lock rendezvousVec to target:position - ship:position + (target:retrograde:vector:normalized * tarDist).
 
-    set dockPID to pidloop(0.1, 0.00125, 0.03, 0, tarVel).
+    set dockPID to pidloop(0.075, 0.00025, 0.05, 0.3, tarVel).
     set dockPID:setpoint to 0.
     lock dockOutput to dockPID:update(time:seconds, (-1 * rendezvousVec:mag)).
 
-    until (rendezvousVec:mag < 0.1)
+    until (rendezvousVec:mag < vecThreshold)
     {
         RCSTranslate((rendezvousVec:normalized * (dockOutput)) - relVel).
+        print rendezvousVec:mag + "          " at (0, 10).
     }
     RCSTranslate(v(0,0,0)).
 }
@@ -268,13 +298,14 @@ function CloseIn
     lock relVel to ship:velocity:orbit - targetPort:ship:velocity:orbit.
     lock dockVec to targetPort:nodeposition - shipPort:nodePosition + (targetPort:portfacing:vector * tarDist).
 
-    set dockPID to pidloop(0.1, 0.002, 0.0265, 0, tarVel).
+    set dockPID to pidloop(0.1, 0.005, 0.0265, 0.3, tarVel).
     set dockPID:setpoint to 0.
     lock dockOutput to dockPID:update(time:seconds, (-1 * dockVec:mag)).
 
     until (dockVec:mag < 0.1)
     {
         RCSTranslate((dockVec:normalized * (dockOutput)) - relVel).
+        print dockVec:mag + "          " at (0, 10).
     }
     RCSTranslate(v(0,0,0)).
 }
@@ -307,8 +338,10 @@ until false {wait 0.}
 
     // TODO:
 
-    // MAKE A CLOSING IN ALGORITHM, VCRS() MIGHT HELP. PORT IS NOT RECOGNIZED 
-    // OUTSIDE OF THE PHYSICS RANGE.
+    // THE RODAN WILL FLIP SOMEWHERE IN THE MANEUVERS, THE LAUNCH
+    // GOES SOLAR PANELS POINTED TO GROUND UNTIL THE RODAN SEPARATION.
+
+
 
 
     
