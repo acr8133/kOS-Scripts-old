@@ -24,8 +24,8 @@
 
  - **(0.7.4)** Fixed RollAlign bug, fixed stuck throttle stick, code formatting change.
  - **(0.7.3)** ASDS and Full Expended mode *(early experimental)*.
- - **(0.7.3)** New rendezvous and docking sequence for Gigan and Rodan.
- - **(0.7.1)** Reworked some parts of the docking script.
+ - **(0.7.3)** Reworked some parts of the docking script.
+ - **(0.7.1)** New rendezvous and docking sequence for Gigan and Rodan.
  - **(0.7.0)** Instantaneous launch window timing.
 	
  # Known Bugs:
