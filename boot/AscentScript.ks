@@ -2,13 +2,10 @@
 clearscreen.
 until AG10 wait 1.
 
-// core:part:getmodule("kOSProcessor"):doEvent("Open Terminal").
-
 StartUp().
 Main().
 
-function Main 
-{
+function Main {
     toggle AG3. // strongback retract
     set throt to 1.
     wait 1.
@@ -21,33 +18,29 @@ function Main
     BurnToApoapsis().
     Circularize().
     SepSequence().
-    if (payloadType = "gigan" or payloadType = "rodan")
-    {   
-        if (hasTarget = true)
-        {
+    if (payloadType = "gigan" or payloadType = "rodan") {   
+        if (hasTarget = true) {
             MatchPlanes().
-            Burn1().            //---> Hohmann Transfer
-            Burn2().            //----------^
+            Burn1().            // Hohmann Transfer
+            Burn2().
             MainDocking().
-            wait 10.
+            wait 10. 
+            AG10 off.
             shutdown.
         }
-    }
-    else  { shutdown. }  
+    } else { AG10 off. shutdown. }  
         
 }
 
-function MainDocking
-{
+function MainDocking {
     rcs on.
-    if (payloadType = "rodan")
-    {
+
+    if (payloadType = "rodan") {
         lock steering to lookdirup(
             ship:prograde:vector,
             vcrs(ship:prograde:vector, body:position)).
     }
-    else
-    {
+    else {
         lock steering to lookdirup(
             ship:prograde:vector,
             vcrs(ship:retrograde:vector, body:position)).
@@ -73,8 +66,7 @@ function MainDocking
     sas on. rcs off.
 }
 
-function StartUp 
-{
+function StartUp {
     // run prerequitistes (load functions to cpu)
     runoncepath("0:/TUNDRA/missionParameters").
     runoncepath("0:/TUNDRA/libGNC").
@@ -89,17 +81,15 @@ function StartUp
     // profile variables
     set targetAzimuth to (Azimuth(DirCorr() * targetInc, targetOrb)). 
     print targetAzimuth at (0, 6).
-    set ctrlOverride to 
-        ((maxPayload - payloadMass) / 10000) * 3.125.
-    set ctrlMax to 35.
+    set ctrlOverride to ((maxPayload - payloadMass) / 10000) * 3.125.
 
-    // init
+    // initialize
+    set steeringmanager:rollts to 20.
     set targetPitch to 90.
     set fairingLock to false.
 }
 
-function Liftoff
-{
+function Liftoff {
     parameter kickAlt.
     
     lock steering to lookdirup(
@@ -109,8 +99,7 @@ function Liftoff
     wait until ship:verticalspeed > kickAlt.
 }
 
-function GravityTurn 
-{
+function GravityTurn {
 
     lock steering to lookdirup(
         heading(targetAzimuth, targetPitch):vector,
@@ -118,10 +107,7 @@ function GravityTurn
 
     lock throt to 1 - (10 * ((-1 * MaxQ) + ship:q)).
 
-    until (ship:apoapsis > targetAp)
-    {
-        wait 0.
-
+    until (ship:apoapsis > targetAp) { wait 0.
         set targetPitch to 
             max(
             (90 * (1 - alt:radar /
@@ -131,8 +117,7 @@ function GravityTurn
     }
 }
 
-function MECO
-{
+function MECO {
     lock steering to lookdirup(
         heading(targetAzimuth, MECOangle + ctrlOverride):vector,
         heading(180 - (DirCorr() * targetInc), 0):vector).
@@ -147,8 +132,7 @@ function MECO
     wait 5.
 }
 
-function BurnToApoapsis
-{
+function BurnToApoapsis {
     // engine sequence
     set throt to 0.025.
     wait 0.5.
@@ -167,26 +151,19 @@ function BurnToApoapsis
         heading(targetAzimuth, targetPitch):vector,
         heading(180 - (DirCorr() * targetInc), 0):vector).
 
-    until (ship:apoapsis > targetOrb)
-    {
-        wait 0.
+    until (ship:apoapsis > targetOrb) {
         set targetPitch to
             min(max(
             (90 * (1 - ship:apoapsis / tangentAltitude)), 
             0), (MECOangle + ctrlOverride)).
     
         // stage once if the ship has fairings
-        if (payloadType = "gigan" or payloadType = "fairing" or payloadType = "fairings") 
-        {
-            wait 0.
-            if (ship:altitude > fairingSepAlt and fairingLock = false)
-            {
+        if (payloadType = "gigan" or payloadType = "fairing" or payloadType = "fairings") { wait 0.
+            if (ship:altitude > fairingSepAlt and fairingLock = false) { wait 0.
                 stage.
                 set fairingLock to true.
-                wait 0.
-            }
-            else
-            { wait 0. }
+
+            } else { wait 0. }
         }
     }
 
@@ -199,57 +176,48 @@ function BurnToApoapsis
     steeringmanager:resettodefault().
 }
 
-function Circularize
-{
+function Circularize {
     set circNode to node(time:seconds + eta:apoapsis, 0, 0, Hohmann("circ")).
     add circNode.
 
     ExecNode().
 }
 
-function SepSequence
-{
+function SepSequence {
     stage.      // separate to second stage.
     wait 10.
 
-    if (payloadType = "gigan")  // gigan has extra fairings
-    {
+    if (payloadType = "gigan") { // gigan has extra fairings 
         stage.
         wait 3.
         panels on.  rcs off.
-    }
-    else if (payloadType = "rodan") // rodan has a shroud
-    {
+    } 
+    else if (payloadType = "rodan") { // rodan has a shroud
         AG4 on.
     }
-    else
-    {
+    else {
         wait 5.
         stage.
     }
 }
 
-function MatchPlanes
-{
-    // staging sequence
-    if (hastarget = false)
-        wait until hasTarget = true.
+function MatchPlanes {
+    local planeCorrection is 1.
+
+    if (hastarget = false) { wait until hasTarget = true. }
+
     wait until TimeToNode() < 30 + BurnLengthRCS(1, NodePlaneChange()).
 
-    set matchNode to node(time:seconds + TimeToNode(), 0, (NodePlaneChange()* PlaneCorr()), 0).
+    if (abs(AngToRAN()) > abs(AngToRDN())) { set planeCorrection to 1. }
+    else { set planeCorrection to -1. }
+
+    set matchNode to node(time:seconds + TimeToNode(), 0, (NodePlaneChange() * planeCorrection), 0).
     add matchNode.
 
     ExecNode(8, true, "top").
 }
 
-function PlaneCorr
-{
-    if (abs(AngToRAN()) > abs(AngToRDN())) { return 1. }
-    else { return -1. }
-}
-
-function Burn1
-{
+function Burn1 {
     wait 10.
     set burn1Node to node(time:seconds + PhaseAngle(), 0, 0, Hohmann("raise")).
     add burn1Node.
@@ -257,8 +225,7 @@ function Burn1
     ExecNode(8, true).
 }
 
-function Burn2
-{
+function Burn2 {
     wait 10.
     set burn1Node to node(time:seconds + eta:apoapsis, 0, 0, Hohmann("circ")).
     add burn1Node.
@@ -266,8 +233,7 @@ function Burn2
     ExecNode(8, true).
 }
 
-function Rendezvous
-{
+function Rendezvous {
     parameter tarDist, tarVel, vecThreshold is 0.1.
 
     local relVel is 0.
@@ -280,16 +246,24 @@ function Rendezvous
     set dockPID:setpoint to 0.
     lock dockOutput to dockPID:update(time:seconds, (-1 * rendezvousVec:mag)).
 
-    until (rendezvousVec:mag < vecThreshold)
-    {
+    until (rendezvousVec:mag < vecThreshold) {
         RCSTranslate((rendezvousVec:normalized * (dockOutput)) - relVel).
         print rendezvousVec:mag + "          " at (0, 10).
     }
     RCSTranslate(v(0,0,0)).
 }
 
-function CloseIn
-{
+function HaltRendezvous {
+    parameter haltThreshold is 0.1.
+
+    lock relVel to ship:velocity:orbit - target:velocity:orbit.
+    until (relVel:mag < haltThreshold) {
+        RCSTranslate(-1 * relVel).
+    }
+    RCSTranslate(v(0,0,0)).
+}
+
+function CloseIn {
     parameter tarDist, tarVel.
 
     local relVel is 0.
@@ -302,33 +276,18 @@ function CloseIn
     set dockPID:setpoint to 0.
     lock dockOutput to dockPID:update(time:seconds, (-1 * dockVec:mag)).
 
-    until (dockVec:mag < 0.1)
-    {
+    until (dockVec:mag < 0.1) {
         RCSTranslate((dockVec:normalized * (dockOutput)) - relVel).
         print dockVec:mag + "          " at (0, 10).
     }
     RCSTranslate(v(0,0,0)).
 }
 
-function HaltRendezvous
-{
-    parameter haltThreshold is 0.1.
-
-    lock relVel to ship:velocity:orbit - target:velocity:orbit.
-    until (relVel:mag < haltThreshold)
-    {
-        RCSTranslate(-1 * relVel).
-    }
-    RCSTranslate(v(0,0,0)).
-}
-
-function HaltDock
-{
+function HaltDock {
     parameter haltThreshold is 0.1.
 
     lock relVel to ship:velocity:orbit - targetPort:ship:velocity:orbit.
-    until (relVel:mag < haltThreshold)
-    {
+    until (relVel:mag < haltThreshold) {
         RCSTranslate(-1 * relVel).
     }
     RCSTranslate(v(0,0,0)).
@@ -340,6 +299,8 @@ until false {wait 0.}
 
     // THE RODAN WILL FLIP SOMEWHERE IN THE MANEUVERS, THE LAUNCH
     // GOES SOLAR PANELS POINTED TO GROUND UNTIL THE RODAN SEPARATION.
+
+    // core:part:getmodule("kOSProcessor"):doEvent("Open Terminal").
 
 
 

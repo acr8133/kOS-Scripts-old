@@ -1,19 +1,15 @@
-set target to vessel("GRDY").
+// set target to vessel("GRDY").
 // set target vessel above, comment if none
 
-MissionVariables("ASDS", 6200, 165000, 0, "rodan", true).
-// change according to your mission targets
-// parameters are as follows:
-    // Ascent Profile ("ASDS", "RTLS", "Full")
-    // Payload Mass(kg)
-    // Target Orbit(m)
-    // Target Inclination(deg),
-    // Payload Type("gigan", "rodan", "fairing")
-    // Wait For Instantaneous Launch Window?(true, false)
-// example: MissionVariables(1000, 120000, 30, "gigan", true).
+MissionVariables(
+    "ASDS",     // Ascent Profile ("ASDS", "RTLS", "Full")
+    9000,       // Payload Mass(kg)
+    150000,     // Target Orbit(m)
+    0,          // Target Inclination(deg)
+    "fairings", // Payload Type("gigan", "rodan", "fairing")
+    false).     // Wait For Instantaneous Launch Window?(true, false)
 
-function MissionVariables 
-{
+function MissionVariables {
     parameter ascProfile, pMass, tOrbit, tInclination, pType, window.
 
     // PAYLOAD
@@ -33,7 +29,7 @@ function MissionVariables
 
     // ORBITAL
     if (ascProfile = "RTLS") { global targetAp is 53500. }  // [55000]
-    else { global targetAp is 63500. }
+    else { global targetAp is 65000. }
     if (hasTarget = true) { global targetInc is target:orbit:inclination. }
     else { global targetInc is tInclination. }
     global targetOrb is tOrbit.
@@ -43,7 +39,7 @@ function MissionVariables
     // VESSEL
     global goForLaunch is false.
     global MaxQ is 0.16.    // set to kPa / 100k  [0.17]
-    if (ascProfile = "RTLS") { global pitchGain is 0.87. }
+    if (ascProfile = "RTLS") { global pitchGain is 0.875. }
     else { global pitchGain is 0.7. }
 
     // TRAJECTORY
@@ -54,15 +50,13 @@ function MissionVariables
     // RE-ENTRY
     if (ascProfile = "RTLS") { global reentryHeight is 27500. }
     else { global reentryHeight is 30000. } // [27500]
-    global reentryVelocity is 485. // [475]
+    if (ascProfile = "RTLS") { global reentryVelocity is 450. }
+    else { global reentryVelocity is 485. }
 
     // LANDING ZONE
-    if (ascProfile = "RTLS") 
-    {
+    if (ascProfile = "RTLS") {
         global LZ is LATLNG(-0.129700289080028,-74.5531947639297).
-    }
-    else
-    {
-        global LZ is LATLNG(-0.0949824364186808,-67.8066569431229).
+    } else {
+        global LZ is LATLNG(-0.0950182909358097,-67.8066714727723).
     }
 }

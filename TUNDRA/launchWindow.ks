@@ -1,27 +1,19 @@
-
 // INSTANTANEOUS LAUNCH WINDOW SEQUENCE
 
-
-if (hasWindow = true and goForLaunch = false and hasTarget = true)
-{
+if (hasWindow = true and goForLaunch = false and hasTarget = true) {
     DirCorr().
     WaitTime().
-}
-
-else
-    global goForLaunch is true.
-
+} else { global goForLaunch is true. }
+    
 wait until (goForLaunch = true).
 
-function WaitTime 
-{
+function WaitTime {
     if (AngToRAN() > 0)
         kuniverse:timewarp:warpto(time:seconds + TMinus("AN") - 30).
     else
         kuniverse:timewarp:warpto(time:seconds + TMinus("DN") - 30).
 
-    until (UpcomingNodeAngle() < windowOffset)
-    {
+    until (UpcomingNodeAngle() < windowOffset) {
         wait 0.
         DirCorr().
     }
@@ -29,13 +21,11 @@ function WaitTime
     kuniverse:timewarp:cancelwarp().
     wait until kuniverse:timewarp:issettled = true.
 
-    set AG9 to true.
     global goForLaunch is true.
 }
 
-//returns angle
-function UpcomingNodeAngle
-{   
+//returns angle, whichever is upcoming
+function UpcomingNodeAngle {   
     wait 0.
     if (AngToRAN() > 0) { TMinus("AN"). return AngToRAN(). }
     else { TMinus("DN"). return AngToRDN(). }
@@ -43,19 +33,14 @@ function UpcomingNodeAngle
 
 //returns seconds (perhaps the name, it returns a positive value)
 // real TMinus is time:seconds - time:seconds + TMinus()
-function TMinus
-{
+function TMinus {
     parameter node.
 
-    if (node = "AN") 
-    {
+    if (node = "AN") {  // will only be either AN or DN
         print "T: -" + round(((AngToRAN() - windowOffset) / 360 * body:rotationperiod)) + "   " at (0, 2).
         return ((AngToRAN() - windowOffset) / 360 * body:rotationperiod).
-    }
-    else if (node = "DN")
-    {
+    } else {
         print "T: -" + round(((AngToRDN() - windowOffset) / 360 * body:rotationperiod)) + "   " at (0, 2).
         return ((AngToRDN() - windowOffset) / 360 * body:rotationperiod).
     }
-    else { return. }
 }

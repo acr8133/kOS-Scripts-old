@@ -1,10 +1,6 @@
-
-// FUNCTIONS FROM BOTH ACR's AND THE KSP-KSLIB
-
 // ORBITAL ELEMENTS CLACULATION
 
-function Azimuth 
-{
+function Azimuth {
     parameter inclination.
     parameter orbit_alt.
     parameter auto_switch is false.
@@ -20,7 +16,7 @@ function Azimuth
             set head to 180 - head.
         }
     }
-    else if inclination < 0 {
+    else if inclination < 0 {   // this is copied off the KSP-lib, idk how does the else if work here
         set head to 180 - head.
     }
     local vOrbit is sqrt(body:mu / (orbit_alt + body:radius)).
@@ -30,8 +26,7 @@ function Azimuth
     return mod(head + 360, 360).
 }
 
-function AngleToBodyAscendingNode 
-{
+function AngleToBodyAscendingNode {
     parameter ves is ship.
 
     local joinVector is OrbitLAN(ves).
@@ -49,8 +44,7 @@ function AngleToBodyAscendingNode
     return angle.
 }
 
-function AngleToBodyDescendingNode 
-{
+function AngleToBodyDescendingNode {
     parameter ves is ship.
 
     local joinVector is -OrbitLAN(ves).
@@ -68,44 +62,38 @@ function AngleToBodyDescendingNode
     return angle.
 }
 
-function OrbitBinormal 
-{
+function OrbitBinormal {
     parameter ves is ship.
 
     return vcrs((ves:position - ves:body:position):normalized, OrbitTangent(ves)):normalized.
 }
 
-function TargetBinormal 
-{
+function TargetBinormal {
     parameter ves is target.
 
     return vcrs((ves:position - ves:body:position):normalized, OrbitTangent(ves)):normalized.
 }
 
-function OrbitLAN 
-{
+function OrbitLAN {
     parameter ves is ship.
 
     return angleAxis(ves:orbit:LAN, ves:body:angularVel:normalized) * solarPrimeVector.
 }
 
-function OrbitTangent 
-{
+function OrbitTangent {
     parameter ves is ship.
 
     return ves:velocity:orbit:normalized.
 }
 
-function RelativeNodalVector 
-{
+function RelativeNodalVector {
     parameter OrbitBinormal is OrbitBinormal().
     parameter TargetBinormal is TargetBinormal().
 
     return vcrs(OrbitBinormal, TargetBinormal):normalized.
 }
 
-function AngToRAN
-{
+function AngToRAN {
     parameter OrbitBinormal is OrbitBinormal().
     parameter TargetBinormal is TargetBinormal().
 
@@ -119,8 +107,7 @@ function AngToRAN
     return angle.
 }
 
-function AngToRDN
-{
+function AngToRDN {
     parameter OrbitBinormal is OrbitBinormal().
     parameter TargetBinormal is TargetBinormal().
 
@@ -134,8 +121,7 @@ function AngToRDN
     return angle.
 }
 
-function TimeToNode
-{
+function TimeToNode {
 	local TA0 is ship:orbit:trueanomaly. 
 	local ANTA is mod(360 + TA0 + AngToRAN(), 360).	// TA is True Anomaly
 	local DNTA is mod(ANTA + 180, 360).
@@ -158,8 +144,7 @@ function TimeToNode
 	return min(t2 - t0, t1 - t0).
 }
 
-function NodePlaneChange
-{
+function NodePlaneChange {
 	local TA0 is ship:orbit:trueanomaly. 
 	local ANTA is mod(360 + TA0 + AngToRAN(), 360).	// TA is True Anomaly
 	local DNTA is mod(ANTA + 180, 360).
@@ -179,24 +164,19 @@ function NodePlaneChange
 	return min(angChange1, angChange2).
 }
 
-function DirCorr
-{
+function DirCorr {
     wait 0.
-    if (hasTarget = true)
-    {
+    if (hasTarget = true) {
         local dirCorrVal is 1. 
 
         if (abs(AngToRAN()) > abs(AngToRDN())) { set dirCorrVal to 1. }
         else { set dirCorrVal to -1. }
 
         return dirCorrVal.
-    }
-    else { return 1. }
+    } else { return 1. }
 }
 
-
-function Trig
-{
+function Trig {
 	parameter res is "angChange".	// add parameters as much as you can squeeze out in this trigonometry relations
 
     local i1 is ship:orbit:inclination.
@@ -214,14 +194,12 @@ function Trig
 
 	local angChange is arccos((a1 * b1) + (a2 * b2) + (a3 * b3)).
 
-	if (res = "angChange")
-		return angChange.
+	if (res = "angChange") { return angChange. }
 }
 
 // HOHMANN TRANSFER TIMING AND DELTAV
 
-function PhaseAngle
-{
+function PhaseAngle {
 	local transferSMA is (target:orbit:semimajoraxis + ship:orbit:semimajoraxis) / 2.
 	local transferTime is (2 * constant:pi * sqrt(transferSMA^3 / ship:body:mu)) / 2.
 	local transferAng is 180 - ((transferTime / target:orbit:period) * 360).
@@ -238,20 +216,17 @@ function PhaseAngle
 	return abs(t).
 }
 
-function Hohmann
-{
+function Hohmann {
 	parameter burn.
 
-	if (burn = "raise")
-	{
+	if (burn = "raise") {
 		local targetSMA is ((target:altitude + ship:altitude + (ship:body:radius * 2)) / 2).
 		local targetVel is sqrt(ship:body:mu * (2 / (ship:body:radius + ship:altitude) - (1 / targetSMA))).
     	local currentVel is sqrt(ship:body:mu * (2 / (ship:body:radius + ship:altitude) - (1 / ship:orbit:semimajoraxis))).
 	
 		return (targetVel - currentVel). 
 	}
-	else if (burn = "circ")
-	{
+	else if (burn = "circ") {
 		local targetVel is sqrt(ship:body:mu / (ship:orbit:body:radius + ship:orbit:apoapsis)).
     	local currentVel is sqrt(ship:body:mu * ((2 / (ship:body:radius + ship:orbit:apoapsis) - (1 / ship:orbit:semimajoraxis)))).
     	
@@ -259,8 +234,7 @@ function Hohmann
 	}		
 }
 
-function ExecNode
-{
+function ExecNode {
 	parameter 
         maxT is ship:maxthrust, 
         isRCS is false, 
@@ -287,18 +261,15 @@ function ExecNode
     lock nv to nd:deltav:normalized.    //makes sure that the parameter set will update
     set dv0 to nd:deltav.
 
-    if (ctrlfacing = "fore") 
-    {
+    if (ctrlfacing = "fore") {
         lock steering to lookdirup(
             nv, 
             normVec).
-        }   
-    else
-    {
+    } else {
         lock steering to lookdirup(
             ship:prograde:vector, // should always point pro
             normVec). //should always point starboard
-        }
+    }
 
     // maneuver execution
 
@@ -337,8 +308,7 @@ function ExecNode
     wait 5.
 }
 
-function RCSTranslate
-{
+function RCSTranslate {
     parameter tarVec. // tarDist.
     if tarVec:mag > 1 set tarVec to tarVec:normalized.
 
@@ -350,8 +320,7 @@ function RCSTranslate
     wait 0.
 }
 
-function BurnLengthRCS
-{
+function BurnLengthRCS {
     parameter thrust, dv.
 
     local rcsship is ship:partstagged("Cmodule")[0].
@@ -369,23 +338,20 @@ function BurnLengthRCS
 
 // LANDING CALCULATION AND SIMULATION
 
-function LandHeight0
-{
+function LandHeight0 {
 	local shipAcc0 is (ship:availablethrust / ship:mass) - (body:mu / body:position:sqrmagnitude).
 	local distance0 is ship:verticalspeed^2 / (2 * shipAcc0).
 	
 	return distance0.
 }
 
-function LandThrottle
-{
+function LandThrottle {
 	local targetThrot is (LandHeight0() / (trueAltitude - 5)).
 	
 	return max(targetThrot, 0.6).
 }
 
-function SimSpeed
-{
+function SimSpeed {
 	local oldSpeed is ship:airspeed.
 	wait 0.1.
 	local newSpeed is ship:airspeed.
@@ -394,16 +360,14 @@ function SimSpeed
 	return  ship:airspeed + (deltaSpeed * 10) - DragValue().
 }
 
-function LandHeight1 
-{
+function LandHeight1 {
 	local shipAcc1 is (ship:availablethrust / ship:mass) - (body:mu / body:position:sqrmagnitude).
 	local distance1 is SimSpeed()^2 / (2 * shipAcc1).
 	
 	return distance1.
 }
 
-function DragValue 
-{
+function DragValue {
 	local v0 is ship:velocity:surface. local t0 is time:seconds.
 	wait 0.05.
 	local v1 is ship:velocity:surface. local t1 is time:seconds.
@@ -416,8 +380,7 @@ function DragValue
 	return (dragForce:mag / 500).
 }
 
-function Trajectories 
-{
+function Trajectories {
 	parameter nav.
 	if addons:tr:hasImpact {
 		if nav = "lat" {
@@ -430,8 +393,7 @@ function Trajectories
 			return sqrt(((addons:tr:impactpos:lat - LZ:lat)^2) + ((addons:tr:impactpos:lng - LZ:lng)^2)).
 			//"dist" returns distance between LZ and impact point
 		}
-	}
-	else {
+	} else {
 		if nav = "lat" {
 			return ship:geoposition:lat.
 		}
@@ -441,8 +403,7 @@ function Trajectories
 	}
 }
 
-function DeltaTrajectories 
-{
+function DeltaTrajectories {
 	set oldTraj to Trajectories("dist").
 	wait 0.1.
 	
@@ -456,20 +417,17 @@ function DeltaTrajectories
 
 // NAV-BALL ANGLES
 
-function ForwardVec 
-{
+function ForwardVec {
 	local forwardPitch is 90 - vang(ship:up:vector, ship:facing:forevector).
 	return forwardPitch.
 }
 
-function RetroDiff 
-{
+function RetroDiff {
 	parameter retMode. // UP = retro angle from radial out, RETRO = AoA from retrograde
 	if retMode = "UP" {
 		local rtrDiff is 90 - vang(ship:up:vector:normalized, ship:srfretrograde:vector:normalized).
 		return rtrDiff.
-	} 
-	else {
+	} else {
 		local rtrDiff is 90 - vang(ship:facing:forevector, ship:srfretrograde:vector:normalized).
 		return rtrDiff.
 	}
