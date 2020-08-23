@@ -15,10 +15,10 @@
     - You can set a **target** on the first line of the file. It will override the set target inclination, with the current target inclination.
 	
  # Action Groups:
-	- 1 - Toggle engine modes
-	- 2 - Soot shaders
-	- 3 - Strongback retract
-	- 4 - Rodan Shroud
+- 1 - Toggle engine modes
+- 2 - Soot shaders
+- 3 - Strongback retract
+- 4 - Rodan Shroud
 	
  # What's new!
 
