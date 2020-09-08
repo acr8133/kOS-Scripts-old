@@ -252,7 +252,7 @@ function ExecNode {
     local nd is nextnode.
     local maxAcc is maxT / ship:mass.
     local burnDuration is nd:deltav:mag / maxAcc.
-    kuniverse:timewarp:warpto(time:seconds + nd:eta - (burnDuration / 2 + 35)).
+    kuniverse:timewarp:warpto(time:seconds + nd:eta - (burnDuration / 2 + 60)).
     wait until nd:eta <= (burnDuration / 2 + 30).
     
 	if (isRCS = true) rcs on.
@@ -352,12 +352,16 @@ function LandThrottle {
 }
 
 function SimSpeed {
+    local time0 is time:seconds.
 	local oldSpeed is ship:airspeed.
 	wait 0.1.
+    local time1 is time:seconds.
 	local newSpeed is ship:airspeed.
-	local deltaSpeed is (newSpeed - oldSpeed).
-	
-	return  ship:airspeed + (deltaSpeed * 10) - DragValue().
+
+    local deltaTime is time1 - time0.
+	local deltaSpeed is (newSpeed - oldSpeed) * deltaTime.
+
+	return ship:airspeed - deltaSpeed - DragValue().
 }
 
 function LandHeight1 {
@@ -368,16 +372,27 @@ function LandHeight1 {
 }
 
 function DragValue {
-	local v0 is ship:velocity:surface. local t0 is time:seconds.
-	wait 0.05.
-	local v1 is ship:velocity:surface. local t1 is time:seconds.
-	
-	local netForce is ((v1 - v0) / (t1 - t0)) * ship:mass.
-	local gravityForce is (body:mu / body:position:sqrmagnitude) * -up:vector * ship:mass.
-	local throttleForce is ship:facing:forevector * ship:availablethrust * throttle.
-	local dragForce is netForce - gravityForce - throttleForce.
-	
-	return (dragForce:mag / 500).
+	local vel0 is ship:velocity:surface.
+    local time0 is time:seconds.
+    local mass0 is ship:mass.
+
+    wait 0.
+    local vel1 is ship:velocity:surface.
+    local time1 is time:seconds.
+    local grav is (body:mu / body:position:sqrmagnitude) * -up:vector. // * ship:mass.
+    local accel is ship:facing:forevector * ship:availablethrust * throttle.
+    local mass1 is ship:mass.
+
+    local deltaTime is time1 - time0.
+    local drag1 is (vel1 - (vel0 + grav + accel)) * deltaTime.
+        
+    local dragForce is ((mass0 + mass1) / 2) * vdot(drag1, ship:facing:forevector).
+        
+    set vel0 to vel1.
+    set time0 to time1.
+    set mass0 to mass1.
+
+    return dragForce.
 }
 
 function Trajectories {

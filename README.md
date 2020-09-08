@@ -3,7 +3,6 @@
  Tundra Exploration's Ghidorah launch system. The script is capable of bringing payload
  into target orbit and target inclination. It also has the capability of
  landing Ghidorah 9's first stage boosters into the target coordinates.
-  **Current Version: v0.7.4**
 
  # Usage:
  - **Boot Scripts**
@@ -22,20 +21,24 @@
 	
  # What's new!
 
+ - **(0.7.7)** Addded abort system, RTLS trajectory rebalance, and new drag force function.
  - **(0.7.4)** Fixed RollAlign bug, fixed stuck throttle stick, code formatting change.
  - **(0.7.3)** ASDS and Full Expended mode *(early experimental)*.
  - **(0.7.3)** Reworked some parts of the docking script.
  - **(0.7.1)** New rendezvous and docking sequence for Gigan and Rodan.
  - **(0.7.0)** Instantaneous launch window timing.
-	
+
+ # Disclaimer:
+ - Before using this script, you must have prior knowledge of kOS in order for you to use this script
+ properly. The systems largely differ in each and every craft (different mods, setup, etc.) so you must 
+ know how to tune PIDs and such to your own likings.
+
  # Known Bugs:
- - rodan wont orient its panels away from the body
- - flip maneuver for first stage is still kinda wonky
- - aero data sometimes are off by a lot
+ - ASDS mode will get a huge makeover.
 	
  # Planned:
- - Re-entry Guidance Computer for Gigan and Rodan.
- - Automatic Crew Abort System.
- - Automatic Flight Termination System (AFTS).
+ - New RTLS-ish ASDS mode, for easier gameplay. (No need to reposition droneships on each mission)
+ - Re-entry Guidance Computer for Gigan and Rodan. (Land near the KSC)
+ - *~~Automatic Flight Termination System (AFTS)~~* **No Longer Planned!**.
  - GUI for mission profiles	
  - (soonTM)..

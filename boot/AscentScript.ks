@@ -12,7 +12,7 @@ function Main {
     stage.
 
     // function calls
-    Liftoff(25).  // pitch kick altitude
+    Liftoff(30).  // pitch kick altitude
     GravityTurn().
     MECO().
     BurnToApoapsis().
@@ -34,17 +34,6 @@ function Main {
 
 function MainDocking {
     rcs on.
-
-    if (payloadType = "rodan") {
-        lock steering to lookdirup(
-            ship:prograde:vector,
-            vcrs(ship:prograde:vector, body:position)).
-    }
-    else {
-        lock steering to lookdirup(
-            ship:prograde:vector,
-            vcrs(ship:retrograde:vector, body:position)).
-    }
     
     wait 10.
     HaltRendezvous(0.5).            // cancel all relative velocity first
@@ -74,6 +63,8 @@ function StartUp {
 
     wait until goForLaunch = true.
 
+    if (payloadType = "rodan") { AbortInitialize(). }
+
     // control variables
     set throt to 0.
     lock throttle to throt.
@@ -96,18 +87,24 @@ function Liftoff {
         heading(90, 90):vector,
         ship:facing:topvector).
 
+    print DragValue() at (0, 4).
+
     wait until ship:verticalspeed > kickAlt.
 }
 
 function GravityTurn {
 
+    lock throtLimiter to max(0, ship:airspeed - 450) / 450.
     lock steering to lookdirup(
         heading(targetAzimuth, targetPitch):vector,
         heading(180 - (DirCorr() * targetInc), 0):vector).
 
-    lock throt to 1 - (10 * ((-1 * MaxQ) + ship:q)).
+    lock throt to max(min(
+        1 - (10 * ((-1 * MaxQ) + ship:q)), 1) - 
+        throtLimiter, 2 / 3).
 
     until (ship:apoapsis > targetAp) { wait 0.
+        print throtLimiter at (0, 5).
         set targetPitch to 
             max(
             (90 * (1 - alt:radar /
@@ -129,6 +126,7 @@ function MECO {
     wait 1.
     stage.
     rcs on. 
+    set ship:control:fore to 0.5.
     wait 5.
 }
 
@@ -136,6 +134,7 @@ function BurnToApoapsis {
     // engine sequence
     set throt to 0.025.
     wait 0.5.
+    set ship:control:neutralize to true.
     set throt to 1.
     lock steering to lookdirup(
         heading(targetAzimuth, MECOangle + ctrlOverride):vector,
@@ -194,6 +193,11 @@ function SepSequence {
     } 
     else if (payloadType = "rodan") { // rodan has a shroud
         AG4 on.
+        wait 5.
+
+        lock steering to lookdirup(     // point panels away from body
+            ship:prograde:vector,
+            vcrs(ship:prograde:vector, body:position)).
     }
     else {
         wait 5.
@@ -293,12 +297,39 @@ function HaltDock {
     RCSTranslate(v(0,0,0)).
 }
 
+function AbortInitialize {
+    on abort {
+        if (ship:airspeed < 5 or ship:altitude < 50000) {
+            lock throttle to 1.
+            lock steering to lookdirup(
+                up:vector,
+                ship:facing:topvector).
+        } else {
+            lock steering to lookdirup(
+                srfprograde:vector,
+                ship:facing:topvector).
+        }
+        wait 3.
+        lock steering to lookdirup(
+            srfprograde:vector,
+            ship:facing:topvector).
+
+        wait until ship:verticalspeed < 50.
+        toggle AG5.     // remove trunk
+
+        wait until ship:verticalspeed < -25.
+        unlock steering. unlock throttle.
+        stage.  // parachutes
+    }
+}
+
 until false {wait 0.}
 
     // TODO:
 
-    // THE RODAN WILL FLIP SOMEWHERE IN THE MANEUVERS, THE LAUNCH
-    // GOES SOLAR PANELS POINTED TO GROUND UNTIL THE RODAN SEPARATION.
+    // REENTRY SEQUENCE
+
+    // TELEMETRY OUTPUT TO TERMINAL
 
     // core:part:getmodule("kOSProcessor"):doEvent("Open Terminal").
 
