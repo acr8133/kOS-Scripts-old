@@ -14,6 +14,9 @@
     - You can set a **target** on the first line of the file. It will override the set target inclination, with the current target inclination.
  - **Docking**
 	- When using a docking port, make sure to change its nametag to **"APAS"**.
+ - **De-orbit**
+	- De-orbit script is heavily hard-coded, proceed with caution. For better results, make sure plane difference is less than five degrees.
+	- Type-in **runpath("0:/TUNDRA/deorbitSeq.ks").** in your kOS terminal to initialize sequence.
 	
  # Action Groups:
 - 1 - Toggle engine modes
@@ -30,9 +33,8 @@
  - Before using this script, you must have prior knowledge of kOS in order for you to use this script
  properly. The systems largely differ in each and every craft (different mods, setup, etc.) so you must 
  know how to tune PIDs and such to your own likings.
- - De-orbit script is heavily hard-coded, proceed with caution. For better results, make sure plane difference is less than five degrees.
  - ASDS profile works best when used on equatorial launches.
-
+ 
  # Known Bugs:
  - None ATM.
 	
