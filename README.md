@@ -39,4 +39,5 @@
  - None ATM.
 	
  # Planned:
- - (soonTM)..
+ - Ghidorah Heavy (Falcon Heavy)
+ - Gojira (Starship)
