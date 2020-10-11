@@ -27,6 +27,7 @@
 	
  # What's new!
 
+ - **(0.8.1)** Added engine spool function
  - **(0.8.0)** Reworked ASDS mode! New de-orbit script for Gigan and Rodan.
 
  # Disclaimer:
