@@ -2,11 +2,11 @@
 // set target vessel above, comment if none
 
 MissionVariables(
-    "Full",     // Ascent Profile ("ASDS", "RTLS", "Full")
-    15000,       // Payload Mass(kg)
+    "ASDS",     // Ascent Profile ("ASDS", "RTLS", "Full")
+    7000,       // Payload Mass(kg)
     130000,     // Target Orbit(m)
-    15,         // Target Inclination(deg)
-    "fairing", // Payload Type("gigan", "rodan", "fairing")
+    0,         // Target Inclination(deg)
+    "gigan", // Payload Type("gigan", "rodan", "fairing")
     false).       // Wait For Instantaneous Launch Window?(true, false)
 
 function MissionVariables {
@@ -53,7 +53,7 @@ function MissionVariables {
     if (ascProfile = "RTLS") { global reentryHeight is 26000. }     // [27500] 
     else { global reentryHeight is 30000. } // [27500]
     if (ascProfile = "RTLS") { global reentryVelocity is 385. }     // [400]
-    else { global reentryVelocity is 420. }                         // [485]
+    else { global reentryVelocity is 410. }                         // [485]
 
     // LANDING ZONE
     if (ascProfile = "RTLS") {
