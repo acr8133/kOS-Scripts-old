@@ -39,7 +39,7 @@ Main().
 function Main {
 	// function calls
 	if (profile = "RTLS") {	
-		Flip1(0.9, 180, 30, 50).
+		Flip1(0.9, 180, 30).
 		Boostback().
 		Flip2(60).
 		Reentry1(60).
@@ -48,7 +48,7 @@ function Main {
 		AG10 off.
 		shutdown.
 	} else {
-		Flip1(0.9, 180, 30, 50).
+		Flip1(0.9, 180, 30).
 		Boostback().
 		Flip2(45).
 		Reentry1(45).
@@ -85,8 +85,8 @@ function StartUp {
 }
 
 function Flip1 {
-	parameter flipPower, finalAttitude, unlockAngle, waitAngle. 
-	// parameters w,x,y,z - rcs until z, counter at y, stop at x, at power w
+	parameter flipPower, finalAttitude, unlockAngle.
+	// parameters x,y,z -  counter at z, stop at y, at power x
 
 	local tangentVector is heading(targetAzimuth, 0):vector.
 
@@ -110,7 +110,7 @@ function Flip1 {
 	}
 
     set ship:control:neutralize to true.
-	set throt to 0.25.
+	EngineSpool(0.25).
 
     wait until ForwardVec() <= unlockAngle.
 
@@ -138,15 +138,17 @@ function Boostback {
 			heading(90 + targetAzimuth, 0):vector).
 	}
 
+	EngineSpool(1).
+
 	if (profile = "RTLS") {
 		lock throt to max(0.125, Trajectories("dist") - 0.05).
 		wait until DeltaTrajectories() > 0.
-		wait (1.5 + burnOvershoot). 
+		wait (2 + burnOvershoot). 
 	} else {
 		lock throt to max(0.125, Trajectories("dist") - 0.325).
 		wait until Trajectories("dist") < 0.375.	// ASDS profile needs to work differently
 	}
-    set throt to 0.
+    EngineSpool(0).
 }
 
 function Flip2 {
@@ -224,15 +226,14 @@ function Reentry1 {
 	lock steering to lookdirup(
 		ship:srfretrograde:vector:normalized * angleaxis(2.5, ship:facing:topvector), 
 		heading(90 + targetAzimuth, 0):vector).
-	set throt to 1.
+	EngineSpool(1).
 	toggle AG2.
 	
 	wait until ship:airspeed < reentryVelocity.
-	set throt to 0.
+	EngineSpool(0).
 }
 
 function AtmoGNC {
-	lock throt to 0.
 	toggle AG1.
 	
 	lock steering to lookdirup((
@@ -245,8 +246,6 @@ function AtmoGNC {
 		wait 0.
 		print "TRAJ-LZ: " + (Trajectories("lng") - ship:geoposition:lng) at (0, 6).
 		print "DRAG: " + DragValue() at (0, 8).
-
-		// print ""
 
 		if (ship:altitude < 11000) {
 			rcs off.
@@ -263,12 +262,12 @@ function Land {
 		wait 0.
 	}
 
-	lock throt to 0.4.
+	EngineSpool(0,4).
 	lock steering to lookdirup(
 		srfretrograde:vector, 
 		heading(90 + targetAzimuth, 0):vector).
 	wait 1.					// engine spool lol
-	lock throt to 1.
+	EngineSpool(1).
 	
 	until ship:verticalspeed > -225 {
 		wait 0.
@@ -304,11 +303,34 @@ function Land {
 	lock throt to  (0.35 * ship:mass * (body:mu / body:position:sqrmagnitude) / (ship:availablethrust + 0.0000001)).
 	
 	wait 1.
-	set throt to 0.1.	// depressurize tank
     set ship:control:pilotmainthrottle to 0.
 	unlock steering.
 	unlock throttle.
 	wait 5.
+}
+
+function EngineSpool {
+    parameter tgt, ullage is false.
+    local startTime is time:seconds.
+	local throttleStep is 0.000333.
+
+    if (ullage) { 
+        rcs on. 
+        set ship:control:fore to 0.35.
+        
+        when (time:seconds > startTime + 2) then { 
+            set ship:control:neutralize to true. rcs off. 
+        }
+    }
+
+    if (throt < tgt) {
+        set throt to 0.025. wait 0.5.
+        until throt >= tgt { set throt to throt + throttleStep. }
+    } else {
+        until throt <= tgt { set throt to throt - throttleStep. }
+    }
+
+    set throt to tgt.
 }
 
 // ROLL ALIGNMENT MODULE

@@ -8,7 +8,7 @@ Main().
 
 function Main {
     toggle AG3. // strongback retract
-    set throt to 1.
+    EngineSpool(1).
     wait 1.
     stage.
 
@@ -89,8 +89,6 @@ function Liftoff {
         heading(90, 90):vector,
         ship:facing:topvector).
 
-    print DragValue() at (0, 4).
-
     wait until ship:verticalspeed > kickAlt.
 }
 
@@ -132,23 +130,14 @@ function MECO {
         heading(targetAzimuth, MECOangle + ctrlOverride):vector,
         heading(180 - (DirCorr() * targetInc), 0):vector).
 
-    // staging sequence
-    set throt to 0.1.
-    wait 2.
-    set throt to 0.
-    wait 1.
-    stage.
-    rcs on. 
-    set ship:control:fore to 0.35.       // avoid burning the interstage
-    wait 2.25.
+    EngineSpool(0).
+    wait 2. stage. wait 2.
 }
 
 function BurnToApoapsis {
-    // engine sequence
-    set throt to 0.05.
-    wait 3.5.
-    set ship:control:neutralize to true.
-    set throt to 1.
+    EngineSpool(0.1, true). // dont burn the Interstage
+    wait 1.
+    EngineSpool(1, false).
     lock steering to lookdirup(
         heading(targetAzimuth, MECOangle + ctrlOverride):vector,
         heading(180 - (DirCorr() * targetInc), 0):vector).
@@ -310,10 +299,34 @@ function HaltDock {
     RCSTranslate(v(0,0,0)).
 }
 
+function EngineSpool {
+    parameter tgt, ullage is false.
+    local startTime is time:seconds.
+    local throttleStep is 0.000333.
+
+    if (ullage) { 
+        rcs on. 
+        set ship:control:fore to 0.5.
+        
+        when (time:seconds > startTime + 2) then { 
+            set ship:control:neutralize to true. rcs off. 
+        }
+    }
+
+    if (throt < tgt) {
+        if (ullage) { set throt to 0.025. wait 0.5. }
+        until throt >= tgt { set throt to throt + throttleStep. }
+    } else {
+        until throt <= tgt { set throt to throt - throttleStep. }
+    }
+
+    set throt to tgt.
+}
+
 function AbortInitialize {
     on abort {
         if (ship:airspeed < 5 or ship:altitude < 50000) {
-            lock throttle to 1.
+            lock throt to 1.
             lock steering to lookdirup(
                 up:vector,
                 ship:facing:topvector).
