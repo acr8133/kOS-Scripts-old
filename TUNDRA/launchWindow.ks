@@ -1,6 +1,6 @@
 // INSTANTANEOUS LAUNCH WINDOW SEQUENCE
 
-if (hasWindow = true and goForLaunch = false and hasTarget = true) {
+if (hasWindow = true and goForLaunch = false and hasTarget = true and not ship:status = "ORBIT") {
     DirCorr().
     WaitTime().
 } else { global goForLaunch is true. }

@@ -12,33 +12,29 @@
 	- Found inside the **missionParameters.ks** are variables you can set to tune
 	the rocket for your own missions. You can refer to the instructions inside the **missionParameters.ks** for tuning the script to your own KSP missions.
     - You can set a **target** on the first line of the file. It will override the set target inclination, with the current target inclination.
+ - **Docking**
+	- When using a docking port, make sure to change its nametag to **"APAS"**.
 	
  # Action Groups:
 - 1 - Toggle engine modes
 - 2 - Soot shaders
 - 3 - Strongback retract
 - 4 - Rodan Shroud
+- 5 - Trunk Decouple
 	
  # What's new!
 
- - **(0.7.7)** Addded abort system, RTLS trajectory rebalance, and new drag force function.
- - **(0.7.4)** Fixed RollAlign bug, fixed stuck throttle stick, code formatting change.
- - **(0.7.3)** ASDS and Full Expended mode *(early experimental)*.
- - **(0.7.3)** Reworked some parts of the docking script.
- - **(0.7.1)** New rendezvous and docking sequence for Gigan and Rodan.
- - **(0.7.0)** Instantaneous launch window timing.
+ - **(0.8.0)** Reworked ASDS mode! New de-orbit script for Gigan and Rodan.
 
  # Disclaimer:
  - Before using this script, you must have prior knowledge of kOS in order for you to use this script
  properly. The systems largely differ in each and every craft (different mods, setup, etc.) so you must 
  know how to tune PIDs and such to your own likings.
+ - De-orbit script is heavily hard-coded, proceed with caution. For better results, make sure plane difference is less than five degrees.
+ - ASDS profile works best when used on equatorial launches.
 
  # Known Bugs:
- - ASDS mode will get a huge makeover.
+ - None ATM.
 	
  # Planned:
- - New RTLS-ish ASDS mode, for easier gameplay. (No need to reposition droneships on each mission)
- - Re-entry Guidance Computer for Gigan and Rodan. (Land near the KSC)
- - *~~Automatic Flight Termination System (AFTS)~~* **No Longer Planned!**.
- - GUI for mission profiles	
  - (soonTM)..

@@ -321,6 +321,7 @@ function RCSTranslate {
 }
 
 function BurnLengthRCS {
+    // gets the time for rcs to complete a maneuver
     parameter thrust, dv.
 
     local rcsship is ship:partstagged("Cmodule")[0].

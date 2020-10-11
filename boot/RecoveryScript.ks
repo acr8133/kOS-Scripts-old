@@ -1,6 +1,6 @@
 // Ghidorah v0.6 -- First Stage Script
 clearscreen.
-core:part:getmodule("kOSProcessor"):doEvent("Open Terminal").
+// core:part:getmodule("kOSProcessor"):doEvent("Open Terminal").
 until AG10 wait 1.
 
 // run prerequitistes (load functions to cpu)
@@ -23,7 +23,11 @@ list processors in corelist.
 local startcorecount is corelist:length.
 local currentcorecount is startcorecount.
 
-until currentcorecount = 1 {
+if (profile = "Full") {
+	shutdown.
+}
+
+until currentcorecount <= 2 {
     list processors in corelist.
     set currentcorecount to corelist:length.
     wait 0.1.
@@ -44,8 +48,10 @@ function Main {
 		AG10 off.
 		shutdown.
 	} else {
-		Flip1(0.5, 145, 80, 85).	// parameters w,x,y,z - rcs until z, counter at y, stop at x, at power w
-		Reentry1(35).
+		Flip1(0.9, 180, 30, 50).
+		Boostback().
+		Flip2(45).
+		Reentry1(45).
 		AtmoGNC().
 		Land().
 		AG10 off.
@@ -80,6 +86,7 @@ function StartUp {
 
 function Flip1 {
 	parameter flipPower, finalAttitude, unlockAngle, waitAngle. 
+	// parameters w,x,y,z - rcs until z, counter at y, stop at x, at power w
 
 	local tangentVector is heading(targetAzimuth, 0):vector.
 
@@ -95,20 +102,15 @@ function Flip1 {
     set ship:control:yaw to -1 * flipPower.
     wait 5.
 	
-	if (profile = "ASDS") { 
-		wait until ForwardVec() >= 85. 
-		brakes on.
-	} else {
-		until (vang(ship:facing:forevector, tangentVector) >= 180 - unlockAngle) {
-			print "TANGENT ANGLE: " + vang(ship:facing:forevector, tangentVector) at (0, 4).
-			if (vang(ship:facing:forevector, tangentVector) > 90) {
-				set ship:control:roll to (RollAlign()).
-			}
+	until (vang(ship:facing:forevector, tangentVector) >= 180 - unlockAngle) {
+		print "TANGENT ANGLE: " + vang(ship:facing:forevector, tangentVector) at (0, 4).
+		if (vang(ship:facing:forevector, tangentVector) > 90) {
+			set ship:control:roll to (RollAlign()).
 		}
 	}
 
     set ship:control:neutralize to true.
-	if (profile = "RTLS") { set throt to 0.25. }
+	set throt to 0.25.
 
     wait until ForwardVec() <= unlockAngle.
 
@@ -116,7 +118,7 @@ function Flip1 {
         heading(targetAzimuth, finalAttitude):vector,
         heading(90 + targetAzimuth, 0):vector).
 
-    if (profile = "RTLS") { set throt to 1. }
+    set throt to 1.
     wait 3.
     steeringmanager:resettodefault().
 }
@@ -127,16 +129,23 @@ function Boostback {
     lock steering to lookdirup(
         vxcl(up:vector, ship:srfretrograde:vector:normalized) +
 		(up:vector:normalized * 0.025 * vxcl(up:vector, ship:srfretrograde:vector:normalized):mag),
- 	   heading(90 + targetAzimuth, 0):vector).
+ 		heading(90 + targetAzimuth, 0):vector).
     
-    wait until vxcl(up:vector, ship:srfretrograde:vector:normalized):mag <= 0.03.
-    lock steering to lookdirup(
-        BBvec, 
-        heading(90 + targetAzimuth, 0):vector).
-    lock throt to max(0.125, Trajectories("dist") - 0.05).
+	if (profile = "RTLS") {
+		wait until vxcl(up:vector, ship:srfretrograde:vector:normalized):mag <= 0.03.
+		lock steering to lookdirup(
+			BBvec, 
+			heading(90 + targetAzimuth, 0):vector).
+	}
 
-    wait until DeltaTrajectories() > 0.
-    wait (2 + burnOvershoot).   // overshoot landing zone
+	if (profile = "RTLS") {
+		lock throt to max(0.125, Trajectories("dist") - 0.05).
+		wait until DeltaTrajectories() > 0.
+		wait (1.5 + burnOvershoot). 
+	} else {
+		lock throt to max(0.125, Trajectories("dist") - 0.325).
+		wait until Trajectories("dist") < 0.375.	// ASDS profile needs to work differently
+	}
     set throt to 0.
 }
 
@@ -156,19 +165,35 @@ function Flip2 {
 	unlock steering.
 	wait 0.1.
 	
-	set ship:control:yaw to 1.
-	wait 5.
-	set ship:control:yaw to 0.
+	if (profile = "RTLS") {
+		set ship:control:yaw to 1.
+		wait 5.
+		set ship:control:yaw to 0.
 		
-	wait until ForwardVec() >= 85.
-	brakes on.
-	wait until ForwardVec() <= 75.
-	
-	lock steering to lookdirup(
+		wait until ForwardVec() >= 85.
+		brakes on.
+		wait until ForwardVec() <= 75.
+
+		lock steering to lookdirup(
 		heading(targetAzimuth, holdAngle):vector, 
 		heading(90 + targetAzimuth, 0):vector).
+
+		wait until ForwardVec() <= holdAngle.
+	} else {
+		set ship:control:yaw to 1.
+		wait 2.5.
+		set ship:control:yaw to 0.
+
+		wait until ForwardVec() >= 40.
+		brakes on.
+
+		lock steering to lookdirup(
+		heading(targetAzimuth, 90 + holdAngle):vector, 
+		heading(90 + targetAzimuth, 0):vector).
+
+		wait until ForwardVec() >= holdAngle.
+	}
 	
-	wait until ForwardVec() <= holdAngle.
 	wait 10.
 	// rcs off.
 	sas on.
@@ -201,7 +226,6 @@ function Reentry1 {
 		heading(90 + targetAzimuth, 0):vector).
 	set throt to 1.
 	toggle AG2.
-	// toggle AG4.
 	
 	wait until ship:airspeed < reentryVelocity.
 	set throt to 0.
@@ -233,8 +257,6 @@ function AtmoGNC {
 }
 
 function Land {
-	// wait until ship:airspeed < 285.	// wait until outside transonic
-
 	lock landApprox to LandHeight1().
 
 	until trueAltitude <= (landApprox) {
@@ -277,6 +299,7 @@ function Land {
 	wait until ship:verticalspeed > -5.
 	lock throt to (0.9 * ship:mass * (body:mu / body:position:sqrmagnitude) / (ship:availablethrust + 0.0000001)).	// vertical velocity hold (avoids bounce too)
 	
+	rcs on.
 	wait until ship:verticalspeed > -1.
 	lock throt to  (0.35 * ship:mass * (body:mu / body:position:sqrmagnitude) / (ship:availablethrust + 0.0000001)).
 	
@@ -299,9 +322,9 @@ function RollAlign {
 
 function PIDvalue {
     // atmospheric gridfins
-	set atmP to 12.5.
+	set atmP to 13.
 	set atmI to 0.15.
-	set atmD to 5.
+	set atmD to 5.5.
 	
 	set AlatP to atmP.
 	set AlatI to atmI.
@@ -338,9 +361,9 @@ function PIDload {
 	
 	set AlngPID to pidloop(AlngP, AlngI, AlngD, -0.1, 0.1).
 	set AlngPID:setpoint to LZ:lng .
-	
-	lock AlatError to AlatPID:update(time:seconds, ((4 * Trajectories("lat")) + ship:geoposition:lat) / 5).
-	lock AlngError to AlngPID:update(time:seconds, ((4 * Trajectories("lng")) + ship:geoposition:lng) / 5).
+
+	lock AlatError to AlatPID:update(time:seconds, ((7 * Trajectories("lat")) + ship:geoposition:lat) / 8).
+	lock AlngError to AlngPID:update(time:seconds, ((7 * Trajectories("lng")) + ship:geoposition:lng) / 8).
 	
 	set HlatPID to pidloop(HlatP, HlatI, HlatD, -0.0005, 0.0005).
 	set HlatPID:setpoint to LZ:lat.	

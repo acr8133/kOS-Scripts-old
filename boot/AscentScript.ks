@@ -1,5 +1,6 @@
 // Ghidorah v0.6 -- Second Stage Script
 clearscreen.
+// core:part:getmodule("kOSProcessor"):doEvent("Open Terminal").
 until AG10 wait 1.
 
 StartUp().
@@ -29,7 +30,6 @@ function Main {
             shutdown.
         }
     } else { AG10 off. shutdown. }  
-        
 }
 
 function MainDocking {
@@ -78,6 +78,8 @@ function StartUp {
     set steeringmanager:rollts to 20.
     set targetPitch to 90.
     set fairingLock to false.
+
+    wait 1.
 }
 
 function Liftoff {
@@ -103,18 +105,29 @@ function GravityTurn {
         1 - (10 * ((-1 * MaxQ) + ship:q)), 1) - 
         throtLimiter, 2 / 3).
 
-    until (ship:apoapsis > targetAp) { wait 0.
-        print throtLimiter at (0, 5).
+    if (profile = "Full") {
+        until ship:availablethrust <= 0.1 { wait 0.
+            set targetPitch to 
+                max(
+                (90 * (1 - alt:radar /
+                (targetAp * pitchGain)
+                ))
+                , MECOangle + ctrlOverride).
+        }
+    } else {
+        until (ship:apoapsis > targetAp) { wait 0.
         set targetPitch to 
             max(
             (90 * (1 - alt:radar /
             (targetAp * pitchGain)
             ))
             , MECOangle + ctrlOverride).
+        }
     }
 }
 
 function MECO {
+
     lock steering to lookdirup(
         heading(targetAzimuth, MECOangle + ctrlOverride):vector,
         heading(180 - (DirCorr() * targetInc), 0):vector).
@@ -126,14 +139,14 @@ function MECO {
     wait 1.
     stage.
     rcs on. 
-    set ship:control:fore to 0.5.
-    wait 5.
+    set ship:control:fore to 0.35.       // avoid burning the interstage
+    wait 2.25.
 }
 
 function BurnToApoapsis {
     // engine sequence
-    set throt to 0.025.
-    wait 0.5.
+    set throt to 0.05.
+    wait 3.5.
     set ship:control:neutralize to true.
     set throt to 1.
     lock steering to lookdirup(
@@ -153,7 +166,7 @@ function BurnToApoapsis {
     until (ship:apoapsis > targetOrb) {
         set targetPitch to
             min(max(
-            (90 * (1 - ship:apoapsis / tangentAltitude)), 
+            (90 * (1 - alt:radar / tangentAltitude)), 
             0), (MECOangle + ctrlOverride)).
     
         // stage once if the ship has fairings
@@ -197,7 +210,7 @@ function SepSequence {
 
         lock steering to lookdirup(     // point panels away from body
             ship:prograde:vector,
-            vcrs(ship:prograde:vector, body:position)).
+            vcrs(ship:prograde:vector, -body:position)).
     }
     else {
         wait 5.
@@ -324,12 +337,6 @@ function AbortInitialize {
 }
 
 until false {wait 0.}
-
-    // TODO:
-
-    // REENTRY SEQUENCE
-
-    // TELEMETRY OUTPUT TO TERMINAL
 
     // core:part:getmodule("kOSProcessor"):doEvent("Open Terminal").
 
