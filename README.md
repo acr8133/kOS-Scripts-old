@@ -48,11 +48,11 @@
  - \- Trajectories dependency
  - \- Deorbit script ( heavily hardcoded )
 
-
  # Disclaimer:
  - The script is tested and balanced to work on 2.5x rescale system.
  - ASDS profile works best in equatorial launches.
- 
+ - Watch Quasy's video in how to setup ASDS landings here: https://youtu.be/nxGF1jf14Lo.
+
  # Known Bugs:
  - Circulation maneuver execution causes the second stage overstreer.
  - Drag function incorrectly reading values, will result in very high touchdown speed. *(lithobraking)*
