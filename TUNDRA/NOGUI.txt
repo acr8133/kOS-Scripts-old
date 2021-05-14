@@ -1,0 +1,50 @@
+// SET PARAMETERS BELOW
+
+global targetInc is 0.
+global targetOrb is 100.
+global profile is "RTLS".
+global payloadMass is 7000.
+global maxPayload is 7000.
+global LZ0 is LATLNG(-0.11,-71).
+global LZ is LATLNG(-0.132317822427,-74.54941288513).
+global LZ1 is LATLNG(-0.140425956708956,-74.5495256417959).
+global MECOangle is 35.
+global tangentAltitude is body:atm:height - 5000.
+global reentryHeight is 30000.
+global reentryVelocity is 400.
+global AoAlimiter is 17.
+global targetAp is 60000.
+global pitchGain is 1.0815.
+global fairingSepAlt is 60000.
+global atmHeight is body:atm:height.
+if (hasTarget = true) { global targetInc is target:orbit:inclination. }
+else { global targetInc is targetIncParam. }
+global windowOffset is 2.5.
+global goForLaunch is false.
+global MaxQ is 0.155.
+global AoAlimiter is 20.
+
+set copyVal to lexicon(
+    "tgtInc", targetInc,
+    "tgtOrb", targetOrb,
+    "prf", profile,
+    "pMass", payloadMass,
+    "maxPmass", maxPayload,
+    "lzcoords0", LZ0,
+    "lzcoords", LZ,
+    "lzcoords1", LZ1,
+    "mecoAng", MECOangle,
+    "rntryAlt", reentryHeight,
+    "rntryVel", reentryVelocity,
+    "aoalim", AoAlimiter).
+
+// send data to CPUs
+set recCPU to processor("VC-13B").
+recCPU:connection:sendmessage(copyVal).
+if (profile = "Heavy") {
+    set ArecCPU to processor("ABooster").
+    ArecCPU:connection:sendmessage(copyVal).
+
+    set BrecCPU to processor("BBooster").
+    BrecCPU:connection:sendmessage(copyVal).
+}

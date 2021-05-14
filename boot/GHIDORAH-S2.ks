@@ -1,43 +1,44 @@
-// Ghidorah v0.6 -- Second Stage Script
-clearscreen.
+// GHIDORAH v1.0 -- SECOND STAGE
+
+clearScreen.
 // core:part:getmodule("kOSProcessor"):doEvent("Open Terminal").
-until AG10 wait 1.
 
 StartUp().
 Main().
 
 function Main {
-    toggle AG3. // strongback retract
     EngineSpool(1).
     wait 1.
     stage.
 
     // function calls
     Liftoff(30).  // pitch kick altitude
-    GravityTurn().
+    GravityTurn(0).
+    if (profile = "Heavy") { BECO(). GravityTurn(1). }
     MECO().
     BurnToApoapsis().
     Circularize().
-    SepSequence().
-    if (payloadType = "gigan" or payloadType = "rodan") {   
-        if (hasTarget = true) {
-            MatchPlanes().
-            Burn1().            // Hohmann Transfer
-            Burn2().
-            MainDocking().
-            wait 10. 
-            AG10 off.
-            shutdown.
-        }
-    } else { AG10 off. shutdown. }  
+    SepSequence(). 
+    if (hasTarget = true) {
+        Burn1().            // Hohmann Transfer
+        Burn2().
+        MatchPlanes().
+        MainDocking().
+        wait 10. 
+        shutdown.
+    }
 }
 
 function MainDocking {
     rcs on.
     
     wait 10.
+    lock steering to lookdirup(ship:velocity:orbit - target:velocity:orbit, vcrs(ship:prograde:vector, -body:position)).
+    wait until (vang(ship:facing:forevector, ship:velocity:orbit - target:velocity:orbit) < 2.5).
     HaltRendezvous(0.5).            // cancel all relative velocity first
-    Rendezvous(500, 15, 1).       // approach the target until inside physics bubble
+    lock steering to lookdirup(target:position, vcrs(target:position, -body:position)).
+    wait until (vang(ship:facing:forevector, target:position) < 1).
+    Rendezvous(500, 15, 10).       // approach the target until inside physics bubble
     Rendezvous(170, 5, 0.5).        // approach the target until target is unpacked
 
     set shipPort to ship:partstagged("APAS")[0].
@@ -56,8 +57,10 @@ function MainDocking {
 }
 
 function StartUp {
+
     // run prerequitistes (load functions to cpu)
-    runoncepath("0:/TUNDRA/missionParameters").
+    if (exists("0:/TUNDRA/NOGUI.ks")) { runoncepath("0:/TUNDRA/NOGUI.ks"). } 
+    else { runoncepath("0:/TUNDRA/missionParameters"). }
     runoncepath("0:/TUNDRA/libGNC").
     runoncepath("0:/TUNDRA/launchWindow").
 
@@ -71,7 +74,6 @@ function StartUp {
 
     // profile variables
     set targetAzimuth to (Azimuth(DirCorr() * targetInc, targetOrb)). 
-    print targetAzimuth at (0, 6).
     set ctrlOverride to ((maxPayload - payloadMass) / 10000) * 3.125.
 
     // initialize
@@ -93,6 +95,7 @@ function Liftoff {
 }
 
 function GravityTurn {
+    parameter mode.
 
     lock throtLimiter to max(0, ship:airspeed - 450) / 450.
     lock steering to lookdirup(
@@ -101,47 +104,76 @@ function GravityTurn {
 
     lock throt to max(min(
         1 - (10 * ((-1 * MaxQ) + ship:q)), 1) - 
-        throtLimiter, 2 / 3).
+        throtLimiter, 0.85).
 
-    if (profile = "Full") {
-        until ship:availablethrust <= 0.1 { wait 0.
+    //NOT HEAVY VARIANT
+    if (mode = 0) {
+        if (profile = "Full") {
+            until ship:availablethrust <= 0.1 { wait 0.
+                set targetPitch to 
+                    max(
+                    (90 * (1 - alt:radar /
+                    (targetAp * pitchGain)
+                    ))
+                    , MECOangle + ctrlOverride).
+            }
+        } else {
+            until (ship:apoapsis > targetAp) { wait 0.
             set targetPitch to 
                 max(
                 (90 * (1 - alt:radar /
                 (targetAp * pitchGain)
                 ))
                 , MECOangle + ctrlOverride).
+            }
         }
-    } else {
-        until (ship:apoapsis > targetAp) { wait 0.
-        set targetPitch to 
-            max(
-            (90 * (1 - alt:radar /
-            (targetAp * pitchGain)
-            ))
-            , MECOangle + ctrlOverride).
+    } 
+    
+    // HEAVY VARIANT
+    else {
+        until (ship:apoapsis > (targetAp + targetOrb) / 2) { wait 0.
+            set targetPitch to 
+                min(max(
+                (90 * (1 - alt:radar /
+                (((targetAp + targetOrb) / 2) * pitchGain)
+                ))
+                , MECOangle - 10 + ctrlOverride), MECOangle).
         }
     }
+    
 }
 
-function MECO {
+function BECO {
 
     lock steering to lookdirup(
         heading(targetAzimuth, MECOangle + ctrlOverride):vector,
         heading(180 - (DirCorr() * targetInc), 0):vector).
 
-    EngineSpool(0).
+    EngineSpool(0.85).
+    toggle AG3. // shutdown booster engines, keep core running
     wait 2. stage. wait 2.
+}
+
+function MECO {
+    
+    if (profile = "Heavy") { set MECOangleOffset to 10. }
+    else { set MECOangleOffset to 0. }
+
+    lock steering to lookdirup(
+        heading(targetAzimuth, MECOangle - MECOangleOffset + ctrlOverride):vector,
+        heading(180 - (DirCorr() * targetInc), 0):vector).
+
+    EngineSpool(0).
+    wait 3. stage. wait 3.
 }
 
 function BurnToApoapsis {
     EngineSpool(0.1, true). // dont burn the Interstage
     wait 1.
-    EngineSpool(1, false).
+    EngineSpool(1).
     lock steering to lookdirup(
         heading(targetAzimuth, MECOangle + ctrlOverride):vector,
         heading(180 - (DirCorr() * targetInc), 0):vector).
-    rcs on.
     
     wait until ship:altitude > 35000.   // will change to prograde angle 
     lock throt to min(
@@ -153,12 +185,13 @@ function BurnToApoapsis {
         heading(180 - (DirCorr() * targetInc), 0):vector).
 
     until (ship:apoapsis > targetOrb) {
+        local avoidFireDeath is 5 * max(0, ((30 - eta:apoapsis) * 0.075)).
         set targetPitch to
             min(max(
             (90 * (1 - alt:radar / tangentAltitude)), 
-            0), (MECOangle + ctrlOverride)).
-    
-        // stage once if the ship has fairings
+            0) + avoidFireDeath, (MECOangle + ctrlOverride)).
+
+        // stage once if ship has fairings, too lazy to check if code uses 'fairing' or 'fairings'
         if (payloadType = "gigan" or payloadType = "fairing" or payloadType = "fairings") { wait 0.
             if (ship:altitude > fairingSepAlt and fairingLock = false) { wait 0.
                 stage.
@@ -167,12 +200,11 @@ function BurnToApoapsis {
             } else { wait 0. }
         }
     }
-
     set throt to 0.
     lock steering to lookdirup(
         ship:prograde:vector,
         heading(180 - (DirCorr() * targetInc), 0):vector).
-    wait 3. rcs off.
+    wait 3.
     wait until ship:altitude > atmHeight + 700. // do not make maneuvers inside an atmosphere
     steeringmanager:resettodefault().
 }
@@ -194,6 +226,7 @@ function SepSequence {
         panels on.  rcs off.
     } 
     else if (payloadType = "rodan") { // rodan has a shroud
+        lights on.
         AG4 on.
         wait 5.
 
@@ -207,106 +240,14 @@ function SepSequence {
     }
 }
 
-function MatchPlanes {
-    local planeCorrection is 1.
-
-    if (hastarget = false) { wait until hasTarget = true. }
-
-    wait until TimeToNode() < 30 + BurnLengthRCS(1, NodePlaneChange()).
-
-    if (abs(AngToRAN()) > abs(AngToRDN())) { set planeCorrection to 1. }
-    else { set planeCorrection to -1. }
-
-    set matchNode to node(time:seconds + TimeToNode(), 0, (NodePlaneChange() * planeCorrection), 0).
-    add matchNode.
-
-    ExecNode(8, true, "top").
-}
-
-function Burn1 {
-    wait 10.
-    set burn1Node to node(time:seconds + PhaseAngle(), 0, 0, Hohmann("raise")).
-    add burn1Node.
-
-    ExecNode(8, true).
-}
-
-function Burn2 {
-    wait 10.
-    set burn1Node to node(time:seconds + eta:apoapsis, 0, 0, Hohmann("circ")).
-    add burn1Node.
-
-    ExecNode(8, true).
-}
-
-function Rendezvous {
-    parameter tarDist, tarVel, vecThreshold is 0.1.
-
-    local relVel is 0.
-    local rendezvousVec is 0.
-
-    lock relVel to ship:velocity:orbit - target:velocity:orbit.
-    lock rendezvousVec to target:position - ship:position + (target:retrograde:vector:normalized * tarDist).
-
-    set dockPID to pidloop(0.075, 0.00025, 0.05, 0.3, tarVel).
-    set dockPID:setpoint to 0.
-    lock dockOutput to dockPID:update(time:seconds, (-1 * rendezvousVec:mag)).
-
-    until (rendezvousVec:mag < vecThreshold) {
-        RCSTranslate((rendezvousVec:normalized * (dockOutput)) - relVel).
-        print rendezvousVec:mag + "          " at (0, 10).
-    }
-    RCSTranslate(v(0,0,0)).
-}
-
-function HaltRendezvous {
-    parameter haltThreshold is 0.1.
-
-    lock relVel to ship:velocity:orbit - target:velocity:orbit.
-    until (relVel:mag < haltThreshold) {
-        RCSTranslate(-1 * relVel).
-    }
-    RCSTranslate(v(0,0,0)).
-}
-
-function CloseIn {
-    parameter tarDist, tarVel.
-
-    local relVel is 0.
-    local dockVec is 0.
-
-    lock relVel to ship:velocity:orbit - targetPort:ship:velocity:orbit.
-    lock dockVec to targetPort:nodeposition - shipPort:nodePosition + (targetPort:portfacing:vector * tarDist).
-
-    set dockPID to pidloop(0.1, 0.005, 0.0265, 0.3, tarVel).
-    set dockPID:setpoint to 0.
-    lock dockOutput to dockPID:update(time:seconds, (-1 * dockVec:mag)).
-
-    until (dockVec:mag < 0.1) {
-        RCSTranslate((dockVec:normalized * (dockOutput)) - relVel).
-        print dockVec:mag + "          " at (0, 10).
-    }
-    RCSTranslate(v(0,0,0)).
-}
-
-function HaltDock {
-    parameter haltThreshold is 0.1.
-
-    lock relVel to ship:velocity:orbit - targetPort:ship:velocity:orbit.
-    until (relVel:mag < haltThreshold) {
-        RCSTranslate(-1 * relVel).
-    }
-    RCSTranslate(v(0,0,0)).
-}
-
 function EngineSpool {
     parameter tgt, ullage is false.
     local startTime is time:seconds.
-    local throttleStep is 0.000333.
+    local throttleStep is 0.0005.
 
     if (ullage) { 
         rcs on. 
-        set ship:control:fore to 0.5.
+        set ship:control:fore to 0.75.
         
         when (time:seconds > startTime + 2) then { 
             set ship:control:neutralize to true. rcs off. 
@@ -350,11 +291,3 @@ function AbortInitialize {
 }
 
 until false {wait 0.}
-
-    // core:part:getmodule("kOSProcessor"):doEvent("Open Terminal").
-
-
-
-
-    
-    

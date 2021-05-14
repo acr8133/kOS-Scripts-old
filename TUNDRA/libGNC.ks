@@ -1,4 +1,4 @@
-// ORBITAL ELEMENTS CLACULATION
+// ORBITAL ELEMENTS CLACULATION [crdts: kOSLib]
 
 function Azimuth {
     parameter inclination.
@@ -236,15 +236,21 @@ function Hohmann {
 
 function ExecNode {
 	parameter 
+        topOffset is false,
         maxT is ship:maxthrust, 
         isRCS is false, 
-        ctrlfacing is "fore".   // either "fore" or "top"
+        ctrlfacing is "fore".  // either "fore" or "top"
 	rcs off.
 
 	// maneuver timing and preparation
     steeringmanager:resettodefault().
     set steeringmanager:maxstoppingtime to 3.5.
-    lock normVec to vcrs(ship:prograde:vector, body:position).
+    if (topOffset = false) {
+        lock normVec to vcrs(ship:prograde:vector, -body:position).
+    } else {
+        lock normVec to body:position.
+    }
+    
     lock steering to lookdirup(
         ship:prograde:vector,
         normVec).
@@ -336,6 +342,112 @@ function BurnLengthRCS {
     return dT.
 }
 
+// RENDEZVOUS AND DOCKING
+
+function MatchPlanes {
+    local planeCorrection is 1.
+
+    if (hastarget = false) { wait until hasTarget = true. }
+
+    wait until TimeToNode() < 30 + BurnLengthRCS(1, NodePlaneChange()).
+
+    if (abs(AngToRAN()) > abs(AngToRDN())) { set planeCorrection to 1. }
+    else { set planeCorrection to -1. }
+
+    set matchNode to node(time:seconds + TimeToNode(), 0, (NodePlaneChange() * planeCorrection), 0).
+    add matchNode.
+
+    ExecNode(false, 6, true, "top").
+}
+
+function Burn1 {
+    wait 10.
+    set burn1Node to node(time:seconds + PhaseAngle(), 0, 0, Hohmann("raise")).
+    add burn1Node.
+
+    ExecNode(false, 6, true).
+}
+
+function Burn2 {
+    wait 10.
+    set burn1Node to node(time:seconds + eta:apoapsis, 0, 0, Hohmann("circ")).
+    add burn1Node.
+
+    ExecNode(false, 6, true).
+}
+
+function Rendezvous {
+    parameter tarDist, tarVel, vecThreshold is 0.1.
+
+    local relVel is 0.
+    local rendezvousVec is 0.
+
+    lock relVel to ship:velocity:orbit - target:velocity:orbit.
+    lock rendezvousVec to target:position - ship:position + (target:prograde:vector:normalized * tarDist).
+
+    set dockPID to pidloop(0.075, 0.00035, 0.06, 0.3, tarVel).
+    set dockPID:setpoint to 0.
+    lock dockOutput to dockPID:update(time:seconds, (-1 * rendezvousVec:mag)).
+
+    until (rendezvousVec:mag < (vecThreshold * 2.5)) {
+        RCSTranslate((rendezvousVec:normalized * (dockOutput)) - relVel).
+        print rendezvousVec:mag + "          " at (0, 10).
+        print "FUNC: REND" at (0, 11).
+    }
+    RCSTranslate(v(0,0,0)).
+}
+
+function HaltRendezvous {
+    parameter haltThreshold is 0.1.
+
+    when relVel:mag < 10 then {
+        local lockVecFore is ship:facing:forevector.
+        local lockVecTop is ship:facing:topvector.
+        lock steering to lookDirUp(lockVecFore, lockVecTop).
+        // lock steering if relvel is low enough, initial was saved to avoid spin
+    } 
+
+    lock relVel to ship:velocity:orbit - target:velocity:orbit.
+    until (relVel:mag < haltThreshold) {
+        RCSTranslate(-1 * relVel).
+        print "FUNC: HTRD" at (0, 11).
+    }
+    RCSTranslate(v(0,0,0)).
+}
+
+function CloseIn {
+    parameter tarDist, tarVel.
+
+    local relVel is 0.
+    local dockVec is 0.
+
+    lock relVel to ship:velocity:orbit - targetPort:ship:velocity:orbit.
+    lock dockVec to targetPort:nodeposition - shipPort:nodePosition + (targetPort:portfacing:vector * tarDist).
+
+    set dockPID to pidloop(0.1, 0.005, 0.0265, 0.3, tarVel).
+    set dockPID:setpoint to 0.
+    lock dockOutput to dockPID:update(time:seconds, (-1 * dockVec:mag)).
+
+    until (dockVec:mag < 0.1) {
+        RCSTranslate((dockVec:normalized * (dockOutput)) - relVel).
+        print dockVec:mag + "          " at (0, 10).
+        print "FUNC: CLIN" at (0, 11).
+
+    }
+    RCSTranslate(v(0,0,0)).
+}
+
+function HaltDock {
+    parameter haltThreshold is 0.1.
+
+    lock relVel to ship:velocity:orbit - targetPort:ship:velocity:orbit.
+    until (relVel:mag < haltThreshold) {
+        RCSTranslate(-1 * relVel).
+        print "FUNC: HTDK" at (0, 11).
+
+    }
+    RCSTranslate(v(0,0,0)).
+}
 
 // LANDING CALCULATION AND SIMULATION
 
@@ -352,19 +464,6 @@ function LandThrottle {
 	return max(targetThrot, 0.6).
 }
 
-function SimSpeed {
-    local time0 is time:seconds.
-	local oldSpeed is ship:airspeed.
-	wait 0.1.
-    local time1 is time:seconds.
-	local newSpeed is ship:airspeed.
-
-    local deltaTime is time1 - time0.
-	local deltaSpeed is (newSpeed - oldSpeed) * deltaTime.
-
-	return ship:airspeed - deltaSpeed - DragValue().
-}
-
 function LandHeight1 {
 	local shipAcc1 is (ship:availablethrust / ship:mass) - (body:mu / body:position:sqrmagnitude).
 	local distance1 is SimSpeed()^2 / (2 * shipAcc1).
@@ -372,63 +471,115 @@ function LandHeight1 {
 	return distance1.
 }
 
+function SimSpeed {
+    local time0 is time:seconds.
+	local oldSpeed is ship:airspeed.
+
+	wait 0.
+
+	local deltaSpeed is ((ship:airspeed - oldSpeed) / (time:seconds - time0)).
+    print "DECELERATION: " + deltaSpeed at (0, 9).
+
+	return ship:airspeed - abs(deltaSpeed) - DragValue().
+}
+
 function DragValue {
 	local vel0 is ship:velocity:surface.
-    local time0 is time:seconds.
     local mass0 is ship:mass.
 
     wait 0.
-    local vel1 is ship:velocity:surface.
-    local time1 is time:seconds.
+
     local grav is (body:mu / body:position:sqrmagnitude) * -up:vector. // * ship:mass.
     local accel is ship:facing:forevector * ship:availablethrust * throttle.
-    local mass1 is ship:mass.
 
-    local deltaTime is time1 - time0.
-    local drag1 is (vel1 - (vel0 + grav + accel)) * deltaTime.
+    local drag1 is (ship:velocity:surface - (vel0 + grav + accel)).
         
-    local dragForce is ((mass0 + mass1) / 2) * vdot(drag1, ship:facing:forevector).
-        
-    set vel0 to vel1.
-    set time0 to time1.
-    set mass0 to mass1.
+    // local dragForce is ((mass0 + ship:mass) / 2) * vdot(drag1, ship:facing:forevector).
 
-    return dragForce.
+    return drag1:mag * 0.5.
 }
 
-function Trajectories {
-	parameter nav.
-	if addons:tr:hasImpact {
-		if nav = "lat" {
-			return addons:tr:impactpos:lat.
-		}
-		else if nav = "lng" {
-			return addons:tr:impactpos:lng.
-		}
-		else if nav = "dist" {
-			return sqrt(((addons:tr:impactpos:lat - LZ:lat)^2) + ((addons:tr:impactpos:lng - LZ:lng)^2)).
-			//"dist" returns distance between LZ and impact point
-		}
-	} else {
-		if nav = "lat" {
-			return ship:geoposition:lat.
-		}
-		else {
-			return ship:geoposition:lng.
-		}
-	}
+// CALCULATED IMPACT ETA [crdts:Nuggreat]
+
+function ImpactUT {
+    PARAMETER minError is 1.
+	IF NOT (DEFINED impact_UTs_impactHeight) { GLOBAL impact_UTs_impactHeight is 0. }
+	local startTime is TIME:SECONDS.
+	local craftOrbit is SHIP:ORBIT.
+	local sma is craftOrbit:SEMIMAJORAXIS.
+	local ecc is craftOrbit:ECCENTRICITY.
+	local craftTA is craftOrbit:TRUEANOMALY.
+	local orbitPeriod is craftOrbit:PERIOD.
+	local ap is craftOrbit:APOAPSIS.
+	local pe is craftOrbit:PERIAPSIS.
+	local impactUTs is TimeTwoTA(ecc,orbitPeriod,craftTA,AltToTA(sma,ecc,SHIP:BODY,MAX(MIN(impact_UTs_impactHeight,ap - 1),pe + 1))[1]) + startTime.
+	local newImpactHeight is GroundTrack(POSITIONAT(SHIP,impactUTs),impactUTs):TERRAINHEIGHT.
+	SET impact_UTs_impactHeight TO (impact_UTs_impactHeight + newImpactHeight) / 2.
+	RETURN LEX("time",impactUTs,//the UTs of the ship's impact
+	"impactHeight",impact_UTs_impactHeight,//the aprox altitude of the ship's impact
+	"converged",((ABS(impact_UTs_impactHeight - newImpactHeight) * 2) < minError)).//will be true when the change in impactHeight between runs is less than the minError
 }
 
-function DeltaTrajectories {
-	set oldTraj to Trajectories("dist").
-	wait 0.1.
+function AltToTA {
+    //returns a list of the true anomalies of the 2 points where the craft's orbit passes the given altitude
+	PARAMETER sma,ecc,bodyIn,altIn.
+	local rad is altIn + bodyIn:RADIUS.
+	local taOfAlt is ARCCOS((-sma * ecc^2 + sma - rad) / (ecc * rad)).
+	RETURN LIST(taOfAlt,360-taOfAlt).//first true anomaly will be as orbit goes from PE to AP
+}
+
+function TimeTwoTA {
+    //returns the difference in time between 2 true anomalies, traveling from taDeg1 to taDeg2
+	PARAMETER ecc,periodIn,taDeg1,taDeg2.
 	
-	set newTraj to Trajectories("dist").
-	set deltaTraj to (newTraj - oldTraj) / 10.
-	set oldTraj to newTraj.
-	return deltaTraj.
-	//the booster will stop when it detects that its impactpos is getting 
-    // farther rather than getting nearer every 0.1 second.
+	local maDeg1 is TrueAToMeanA(ecc,taDeg1).
+	local maDeg2 is TrueAToMeanA(ecc,taDeg2).
+	
+	local timeDiff is periodIn * ((maDeg2 - maDeg1) / 360).
+	
+	RETURN MOD(timeDiff + periodIn, periodIn).
+}
+
+function TrueAToMeanA {
+    //converts a true anomaly(degrees) to the mean anomaly (degrees) NOTE: only works for non hyperbolic orbits
+	PARAMETER ecc,taDeg.
+	local eaDeg is ARCTAN2(SQRT(1-ecc^2) * SIN(taDeg), ecc + COS(taDeg)).
+	local maDeg is eaDeg - (ecc * SIN(eaDeg) * CONSTANT:RADtoDEG).
+	RETURN MOD(maDeg + 360,360).
+}
+
+function GroundTrack {	
+    //returns the geocoordinates of the ship at a given time(UTs) adjusting for planetary rotation over time, only works for non tilted spin on bodies 
+	PARAMETER pos,posTime,localBody is SHIP:BODY.
+	local bodyNorth is v(0,1,0).//using this instead of localBody:NORTH:VECTOR because in many cases the non hard coded value is incorrect
+	local rotationalDir is VDOT(bodyNorth,localBody:ANGULARVEL) * CONSTANT:RADTODEG. //the number of degrees the body will rotate in one second
+	local posLATLNG is localBody:GEOPOSITIONOF(pos).
+	local timeDif is posTime - TIME:SECONDS.
+	local longitudeShift is rotationalDir * timeDif.
+	local newLNG is MOD(posLATLNG:LNG + longitudeShift,360).
+	IF newLNG < - 180 { SET newLNG TO newLNG + 360. }
+	IF newLNG > 180 { SET newLNG TO newLNG - 360. }
+	RETURN LATLNG(posLATLNG:LAT,newLNG).
+}
+
+function Impact {
+    parameter nav.
+
+    local impData is ImpactUT().
+    local impLatLng is GroundTrack(POSITIONAT(SHIP,impData["time"]),impData["time"]).
+
+    if (nav = "lat") { return impLatLng:lat. }
+    else if (nav = "lng") { return impLatLng:lng. }
+    else { return sqrt(((impLatLng:lat - LZ:lat)^2) + ((impLatLng:lng - LZ:lng)^2)). }
+}
+
+function DeltaImpact { 
+    local oldTraj is Impact("dist").
+    local oldTime is time:seconds.
+
+    wait 0.
+
+    return ((Impact("dist") - oldTraj) / (time:seconds - oldTime)).
 }
 
 // NAV-BALL ANGLES
