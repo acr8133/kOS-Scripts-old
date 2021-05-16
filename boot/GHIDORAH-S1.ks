@@ -96,7 +96,7 @@ function Main {
 		AG10 off.
 		shutdown.
 	} else {
-		Flip1(0.75, 180, 30).
+		Flip1(0.75, 170, 35).
 		Boostback().
 		Flip2(45).
 		Reentry1(45).
@@ -119,7 +119,7 @@ function StartUp {
 	set steeringmanager:yawpid:kd to steeringmanager:yawpid:kd + 5.
 
     // profile variables
-    set landingOvershoot to 0.135.
+    set landingOvershoot to 0.175.
 	set burnOvershoot to 1.25.
 	set ctrlOverride to ((maxPayload - payloadMass) / 10000) * 3.125.
 
@@ -180,7 +180,7 @@ function Boostback {
     lock BBvec to LZ:altitudeposition(ship:altitude + 750).
     lock steering to lookdirup(
         vxcl(up:vector, ship:srfretrograde:vector:normalized):normalized *
-		angleAxis(2.5, ship:facing:topvector),
+		angleAxis(10, ship:facing:topvector),
  		heading(90 + targetAzimuth, 0):vector).
     
 	if (profile = "RTLS" or core:tag = "ABooster" or core:tag = "BBooster") {
@@ -318,7 +318,7 @@ function AtmoGNC {
 		print "DRAG FORCE: " + DragValue() at (0, 8).
 		print "TARGET DISTANCE: " + dRange at (0, 10).
 
-		if (ship:altitude < 11500) {
+		if (ship:altitude < 11000) {
 			rcs off.
 		} else {
 			rcs on.

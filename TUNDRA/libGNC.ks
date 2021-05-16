@@ -485,9 +485,6 @@ function SimSpeed {
 
 function DragValue {
 	local vel0 is ship:velocity:surface.
-    local mass0 is ship:mass.
-
-    wait 0.
 
     local grav is (body:mu / body:position:sqrmagnitude) * -up:vector. // * ship:mass.
     local accel is ship:facing:forevector * ship:availablethrust * throttle.
@@ -513,7 +510,7 @@ function ImpactUT {
 	local ap is craftOrbit:APOAPSIS.
 	local pe is craftOrbit:PERIAPSIS.
 	local impactUTs is TimeTwoTA(ecc,orbitPeriod,craftTA,AltToTA(sma,ecc,SHIP:BODY,MAX(MIN(impact_UTs_impactHeight,ap - 1),pe + 1))[1]) + startTime.
-	local newImpactHeight is GroundTrack(POSITIONAT(SHIP,impactUTs),impactUTs):TERRAINHEIGHT.
+	local newImpactHeight is max(0, GroundTrack(POSITIONAT(SHIP,impactUTs),impactUTs):TERRAINHEIGHT).
 	SET impact_UTs_impactHeight TO (impact_UTs_impactHeight + newImpactHeight) / 2.
 	RETURN LEX("time",impactUTs,//the UTs of the ship's impact
 	"impactHeight",impact_UTs_impactHeight,//the aprox altitude of the ship's impact

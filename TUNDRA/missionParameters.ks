@@ -89,7 +89,7 @@ until launchButton:pressed { WaitForConfirm(). wait 0. }
 if (hasWindow) { set target to vessel(tempTarget). }
 
 //-------------------- CHANGE LZ COORDINATES HERE --------------------//
-global LZ0 is LATLNG(-0.11,-71). // BARGE
+global LZ0 is LATLNG(-0.13,-71). // BARGE
 global LZ is LATLNG(-0.132317822427,-74.54941288513). // LZ1
 global LZ1 is LATLNG(-0.140425956708956,-74.5495256417959). // LZ2
 //--------------------------------------------------------------------//
@@ -154,10 +154,10 @@ function ASDSmd {
         global profile is "ASDS".
         global tangentAltitude is body:atm:height + 5000.
         global MECOangle is 40.
-        global targetAp is 60000.
+        global targetAp is 62500.
         global pitchGain is 1.0815.
         global reentryHeight is 32500.
-        global reentryVelocity is 600.
+        global reentryVelocity is 500.
     }
 }
 
@@ -185,6 +185,7 @@ function EXPNmd {
         global targetAp is 65000.
         global pitchGain is 0.725.
         global landingOffset is -0.00085.
+        global reentryHeight is 30000.
         global reentryVelocity is 410.
         // recovery parameters are still added to prevent unknown variables errors
     }

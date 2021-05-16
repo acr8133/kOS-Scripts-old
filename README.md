@@ -11,6 +11,16 @@
 	- If you dont want to use the GUI, see the next section for instructions.  
  - **Docking**
 	- When docking, change the nametag of your port and the target's port to **"APAS"**.
+ - **Action Groups**
+	- AG1 - Toggle engine modes
+	- AG2 - Soot shaders
+	- AG3 - Heavy booster engine toggles
+	- AG4 - Rodan shroud
+	- AG5 - Trunk decouple
+ - **Nametags (BOOSTER - NAMETAG - PART)**
+	- Core - **VC-13B** - Interstage
+	- Side Booster A - **ABooster** - Booster nosecone
+	- Side Booster B - **BBooster** - Booster nosecone
 	   
  # GUI:
  - **Landing Profile**
@@ -21,7 +31,7 @@
  - **Payload Mass (kg)**
  	- The script will actually work even if payload mass is wrong. For efficient launches, set this to the correct value.
  - **Target Orbit (km / deg)**
- 	- Only capable of circular orbits, 0° for equatorial and 90° for polar orbits.
+ 	- Only capable of circular orbits, 0° for equatorial and 90° for polar orbits, go higher for retrograde orbits.
  	- Inclination will be overwritten if the ship is set to rendezvous to a target.
  - **Payload Type**
  	- Gigan
@@ -31,22 +41,20 @@
  	- Input the target's name, if there is no ship found the script will crash.
  
  If you instead want a GUI-less launch, rename NOGUI.**txt** to NOGUI.**ks**.
- 
- # Action Groups:
-- 1 - Toggle engine modes
-- 2 - Soot shaders
-- 3 - Heavy booster engine toggles
-- 4 - Rodan shroud
-- 5 - Trunk decouple
+
 	
  # Changelog:
- - \+ Mission parameters GUI
- - \+ Heavy config and dual booster landing capability
- - % PID rebalance
- - % Small ASDS landing rework to prepare for a bigger rework 
- - % Plane matching now happens at higher orbit to conserve Δv
- - \- Trajectories dependency
- - \- Deorbit script ( heavily hardcoded )
+- **v1.0.1**
+	- % fixed a bug where the bottom of the ocean is targeted instead of the droneship
+	- % small tweak to ASDS mode
+- **v1.0.0**
+	- \+ Mission parameters GUI
+ 	- \+ Heavy config and dual booster landing capability
+ 	- % PID rebalance
+ 	- % Small ASDS landing rework to prepare for a bigger rework 
+	- % Plane matching now happens at higher orbit to conserve Δv
+ 	- \- Trajectories dependency
+ 	- \- Deorbit script ( heavily hardcoded )
 
  # Disclaimer:
  - The script is tested and balanced to work on 2.5x rescale system.
