@@ -1,10 +1,10 @@
-// GHIDORAH v1.0 -- FIRST STAGE
+// GHIDORAH v1.0.2 -- FIRST STAGE
 
-clearscreen.
+clearScreen.
 // core:part:getmodule("kOSProcessor"):doEvent("Open Terminal").
 
 // run prerequitistes (load functions to cpu)
-runoncepath("0:/TUNDRA/libGNC").
+runoncepath("0:/TUNDRA/GHIDORAH/libGNC").
 
 // FROM MISSION PARAMETERS
 until false {
@@ -124,8 +124,7 @@ function StartUp {
 	set ctrlOverride to ((maxPayload - payloadMass) / 10000) * 3.125.
 
     // booster variables
-    set coreAltitude to 29.285.
-    lock trueAltitude to alt:radar - coreAltitude.
+    lock trueAltitude to ship:bounds:bottomaltradar.
 
     // init
     set deltaTraj to 0.
@@ -145,7 +144,7 @@ function Flip1 {
         heading(targetAzimuth, MECOangle):vector,
         heading(90 + targetAzimuth, 0):vector).
     wait 2.5.
-    toggle AG1. // switch engine mode to 3
+    EngineSwitch(0, 1).
     unlock steering.
     wait 0.1.
 
@@ -164,7 +163,7 @@ function Flip1 {
 	
 	EngineSpool(0.1).
 
-    wait until ForwardVec() <= unlockAngle * 0.5.
+    wait until ForwardVec() <= unlockAngle * 0.66667.
 
 	lock steering to lookdirup(
         heading(targetAzimuth, finalAttitude):vector,
@@ -173,28 +172,39 @@ function Flip1 {
     set throt to 1.
     wait 2.
     steeringmanager:resettodefault().
+
 }
 
 function Boostback {
+
+	// set bvd to vecDraw(ship:position, LZ:position,rgb(1,1,0), "lz", 1.0, true).
+	// set bvd:vecupdater to { return LZ:position. }.
+
     rcs off.
     lock BBvec to LZ:altitudeposition(ship:altitude + 750).
-    lock steering to lookdirup(
-        vxcl(up:vector, ship:srfretrograde:vector:normalized):normalized *
-		angleAxis(10, ship:facing:topvector),
- 		heading(90 + targetAzimuth, 0):vector).
     
 	if (profile = "RTLS" or core:tag = "ABooster" or core:tag = "BBooster") {
+		lock steering to lookdirup(
+        	vxcl(up:vector, ship:srfretrograde:vector:normalized):normalized *
+			angleAxis(0, ship:facing:topvector),
+ 			heading(90 + targetAzimuth, 0):vector).
+
 		wait until vxcl(up:vector, ship:srfretrograde:vector:normalized):mag <= 0.03.
 		lock steering to lookdirup(
 			BBvec * angleAxis(0, ship:facing:topvector), 
 			heading(90 + targetAzimuth, 0):vector).
+	} else {
+		lock steering to lookdirup(
+        	vxcl(up:vector, ship:srfretrograde:vector:normalized):normalized *
+			angleAxis(10, ship:facing:topvector),
+ 			heading(90 + targetAzimuth, 0):vector).
 	}
 
 	EngineSpool(1).
 
 	if (profile = "RTLS" or core:tag = "ABooster" or core:tag = "BBooster") {
 		lock throt to max(0.125, Impact("dist") - 0.05).
-		until DeltaImpact() > 0 { print "DELTA: " + DeltaImpact() at (0, 5). }
+		until DeltaImpact() > 0 { print "DELTA: " + round(DeltaImpact(), 3) + "       " at (0, 5). }
 		wait (burnOvershoot). 
 	} else {
 		local tempLZ is LZ.
@@ -202,9 +212,7 @@ function Boostback {
 		lock throt to max(0.125, Impact("dist") - 0.325). wait 1.
 		until DeltaImpact() > 0 { 
 			print "DELTA: " + DeltaImpact() at (0, 5). 
-			print LZ:lng at (0, 14).
-			print Impact("lng") at (0, 15).
-			print Impact("dist") at (0, 16). 
+			print LZ:lng at (0, 14). 
 		}
 		set LZ to tempLZ.
 		// ASDS profile needs to work differently
@@ -216,15 +224,16 @@ function Flip2 {
 	parameter holdAngle.
 
 	set steeringmanager:rollts to 5.
-	set steeringmanager:pitchpid:kd to steeringmanager:pitchpid:kd + 5.
-	set steeringmanager:yawpid:kd to steeringmanager:yawpid:kd + 5.
+	set steeringmanager:pitchpid:kd to steeringmanager:pitchpid:kd + 3.5.
+	set steeringmanager:yawpid:kd to steeringmanager:yawpid:kd + 3.5.
+	set steeringmanager:maxstoppingtime to 10.
 	
 	rcs on.
 	lock steering to lookdirup(
 		heading(targetAzimuth, 180):vector, 
 		heading(90 + targetAzimuth, 0):vector).
 		
-	wait 5.
+	wait 7.
 	unlock steering.
 	wait 0.1.
 	
@@ -259,6 +268,7 @@ function Flip2 {
 	
 	wait 10.
 	// rcs off.
+	set steeringmanager:maxstoppingtime to 2.
 	sas on.
 	unlock steering.
 }
@@ -272,8 +282,6 @@ function Reentry1 {
 	sas off.
 
 	// set avd to vecDraw(ship:position, ship:facing:topvector,rgb(1,0,0), "TOPVEC", 1.0, true).
-	// set bvd to vecDraw(ship:position, LZ:position,rgb(1,1,0), "lz", 1.0, true).
-	// set bvd:vecupdater to { return LZ:position. }.
 
 	lock steering to lookdirup(
 		ship:srfretrograde:vector:normalized, 
@@ -281,12 +289,9 @@ function Reentry1 {
 
 	until alt:radar < reentryHeight + 5000 {
 		print "TRAJ-LZ: " + (Impact("lng") - ship:geoposition:lng) at (0, 6).
-		print "DRAG FORCE: " + DragValue() at (0, 8).
 	}
 	until alt:radar < reentryHeight {
 		print "TRAJ-LZ: " + (Impact("lng") - ship:geoposition:lng) at (0, 6).
-		print "DRAG FORCE: " + DragValue() at (0, 8).
-
 	}
 
 	lock steering to lookdirup(
@@ -303,7 +308,7 @@ function Reentry1 {
 }
 
 function AtmoGNC {
-	toggle AG1.
+	EngineSwitch(1, 2).
 	lock dRange to sqrt((LZ:lng - ship:geoposition:lng)^2 + (LZ:lat - ship:geoposition:lat)^2) * 1000.
 	
 	lock steering to lookdirup((
@@ -312,10 +317,8 @@ function AtmoGNC {
 		ship:facing:starvector:normalized * AlngError * -(AoAlimiter)),
 		heading(180, 0):vector).
 
-	until alt:radar < 5000 {
-		wait 0.
+	until alt:radar < 4000 {
 		print "TRAJ-LZ: " + (Impact("lng") - ship:geoposition:lng) at (0, 6).
-		print "DRAG FORCE: " + DragValue() at (0, 8).
 		print "TARGET DISTANCE: " + dRange at (0, 10).
 
 		if (ship:altitude < 11000) {
@@ -323,54 +326,96 @@ function AtmoGNC {
 		} else {
 			rcs on.
 		}
+
+		set landApprox to LandHeight1().
+
+		set forceSwitch to true.	// forces 1-3-1 on Heavy config or too much payload
+		set burnMult to 1.
+		if ((payloadMass > maxPayload) or (profile = "Heavy") or forceSwitch) {
+			set forceSwitch to true.
+			set burnMult to 0.666.
+		}
+
+		DebugPrint().
 	}
 }
 
 function Land {
 	lock landApprox to LandHeight1().
 
-	until trueAltitude <= (landApprox) {
-		print "TARGET DISTANCE: " + dRange at (0, 10).
-		wait 0.
+	until trueAltitude <= (landApprox * burnMult) {
+		DebugPrint().
 	}
 
-	EngineSpool(0,4).
 	lock steering to lookdirup(
 		srfretrograde:vector, 
 		heading(180, 0):vector).
 	wait 1.					// engine spool lol
 	EngineSpool(1).
-	
-	until ship:verticalspeed > -150 { print "TARGET DISTANCE: " + dRange at (0, 10). wait 0. }
+
+	// wait less when going for a faster landing burn
+	if (forceSwitch) {
+		until ship:verticalspeed > -300 { DebugPrint(). }
+	} else {
+		until ship:verticalspeed > -250 { DebugPrint(). }
+	}
 
 	when (trueAltitude < 150) then {
 		gear on.
 	}
 
-	lock throt to LandThrottle().
+	local switchLock is false.	// prevent going back to 3 engine mode
+	local hasSwitched is false.	// prevent doing 1-3-1 when altitude is high enough
+	local switchDone is false.	// prevent spam-locking
+
+	// ONE-THREE-ONE ENGINE SEQUENCE TRIGGER (will trigger if booster is coming in too hot)
+	when (LandThrottle() < 1 and hasSwitched = false) then {
+		set switchLock to true.
+		lock throt to max(0.45, LandThrottle()).
+	}
+	when ((throt > 1.333 and switchDone = false) or forceSwitch) then { 
+		if (switchLock = false) {
+			EngineSwitch(2,1). 
+			lock throt to max(0.45, LandThrottle(1)).
+			set hasSwitched to true. 
+		} 
+	}
+	when (throt <= 0.6667 and switchDone = false) then {
+		if (hasSwitched) {
+			EngineSwitch(1,2). 
+			lock throt to max(0.45, LandThrottle()).
+			set switchDone to true.
+			set switchLock to true. 
+		} 
+	}
+	
+	HlatPID:reset().
+	HlngPID:reset().
 	lock steering to lookdirup((
 		ship:facing:topvector:normalized * HlatError * -1000 + 
 		ship:facing:starvector:normalized * HlngError * 1000 + 
-		(-ship:velocity:surface:normalized * 10 + up:vector * 10)), 
+		(-ship:velocity:surface:normalized * 20 + up:vector * 20)), 
 		heading(180, 0):vector).
 
-	until ship:verticalspeed > -20 { print "TARGET DISTANCE: " + dRange at (0, 10). wait 0.}
+	until ship:verticalspeed > -20 { 
+		DebugPrint().
+	}
 	
 	lock steering to lookdirup((
 		ship:facing:topvector:normalized * HlatError * -1000 + 
 		ship:facing:starvector:normalized * HlngError * 1000 + 
-		(up:vector * 100)), 
+		(up:vector * 200)), 
 		heading(180, 0):vector).
 
-	until trueAltitude < 15 { print "TARGET DISTANCE: " + dRange at (0, 10). wait 0. }
+	until trueAltitude < 25 { DebugPrint(). }
 	lock steering to lookdirup(heading(90, 90):vector, heading(90 + 90, 0):vector).
 	
-	until ship:verticalspeed > -3 { print "TARGET DISTANCE: " + dRange at (0, 10). wait 0. }
-	lock throt to (0.95 * ship:mass * 9.81 / max(ship:availablethrust, 0.001)).	// vertical velocity hold (avoids bounce too)
+	until ship:verticalspeed > -5 { DebugPrint(). }
+	lock throt to 0.95 * ((ship:mass * 9.81) / max(ship:availablethrust, 0.001)).	// vertical velocity hold (avoids bounce too)
 	
 	rcs on.
-	wait until ship:verticalspeed > -1.
-	lock throt to (0.25 * ship:mass * 9.81 / max(ship:availablethrust, 0.0001)).
+	until ship:status = "LANDED" { DebugPrint(). }
+	lock throt to 0.2 * ((ship:mass * 9.81) / max(ship:availablethrust, 0.001))..
 	
 	wait 1.
     set ship:control:pilotmainthrottle to 0.
@@ -382,11 +427,11 @@ function Land {
 function EngineSpool {
     parameter tgt, ullage is false.
     local startTime is time:seconds.
-	local throttleStep is 0.0004.
+	local throttleStep is 0.0006667.
 
     if (ullage) { 
         rcs on. 
-        set ship:control:fore to 0.35.
+        set ship:control:fore to 1.
         
         when (time:seconds > startTime + 2) then { 
             set ship:control:neutralize to true. rcs off. 
@@ -403,10 +448,22 @@ function EngineSpool {
     set throt to tgt.
 }
 
+function EngineSwitch {
+    parameter fromEng, toEng.
+
+    until fromEng = toEng {
+        set fromEng to fromEng + 1.
+        if (fromEng > 2) {
+            set fromEng to 0.
+        }
+        wait 0.
+        toggle AG1.
+    } 
+}
+
 // PID CONTROLLER SETUP
 
 function RollAlign {
-	wait 0.
 	return rollPID:update(time:seconds, vang(ship:facing:topvector, body:position)).
 }
 
@@ -414,7 +471,7 @@ function PIDvalue {
     // atmospheric gridfins
 	set atmP to 20.
 	set atmI to 0.15.
-	set atmD to 5.5.
+	set atmD to 6.5.
 	
 	set AlatP to atmP.
 	set AlatI to atmI.
@@ -427,9 +484,9 @@ function PIDvalue {
 	set AlngError to 0.
 	
 	// engine gimbal
-	set hvrP to 10.
-	set hvrI to 0.
-	set hvrD to 1.7.
+	set hvrP to 17.
+	set hvrI to 0.5.
+	set hvrD to 2.5.
 	
 	set HlatP to hvrP.
 	set HlatI to hvrI.
@@ -452,7 +509,7 @@ function PIDload {
 	set AlngPID to pidloop(AlngP, AlngI, AlngD, -0.1, 0.1).
 	set AlngPID:setpoint to LZ:lng .
 
-	lock OvershootAlt to min(0.3, alt:radar * 0.000025).
+	lock OvershootAlt to min(0.3, alt:radar * 0.000015).
 
 	lock AlatError to AlatPID:update(time:seconds, (((1 - OvershootAlt) * Impact("lat")) + (OvershootAlt * ship:geoposition:lat))).
 	lock AlngError to AlngPID:update(time:seconds, (((1 - OvershootAlt) * Impact("lng")) + (OvershootAlt * ship:geoposition:lng))).
@@ -485,4 +542,15 @@ function SaveAzmthFunc {
 	return this1.
 }
 
+function DebugPrint {
+	print "INIT ALTITUDE: " + LandHeight0() at (0, 12).
+	print "PRED ALTITUDE: " + round(landApprox, 3) * burnMult at (0, 13). 
+
+	print "SITUATION: " + ship:status at (0, 16).
+	print "TARGET THRTL: " + throt at (0, 17).
+}
+
 until false {wait 0.}
+
+// TODO
+// FORCE 1-3-1 ON HEAVY AND HEAVY PAYLOADS

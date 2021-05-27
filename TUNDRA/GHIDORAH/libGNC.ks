@@ -452,20 +452,34 @@ function HaltDock {
 // LANDING CALCULATION AND SIMULATION
 
 function LandHeight0 {
-	local shipAcc0 is (ship:availablethrust / ship:mass) - (body:mu / body:position:sqrmagnitude).
+    parameter burnInt is ship:availableThrust.
+
+	local shipAcc0 is (burnInt / ship:mass) - (body:mu / body:position:sqrmagnitude).
 	local distance0 is ship:verticalspeed^2 / (2 * shipAcc0).
-	
+
 	return distance0.
 }
 
 function LandThrottle {
-	local targetThrot is (LandHeight0() / (trueAltitude - 5)).
-	
-	return max(targetThrot, 0.6).
+    parameter mode is 0.
+
+    local targetThrot is 0.
+
+    if (mode = 0) {
+	    set targetThrot to (LandHeight0() / trueAltitude).
+    } else {
+        set targetThrot to (LandHeight0(ship:availablethrust * 0.333) / trueAltitude).
+    }
+
+	return targetThrot.
 }
 
 function LandHeight1 {
-	local shipAcc1 is (ship:availablethrust / ship:mass) - (body:mu / body:position:sqrmagnitude).
+	local massLoss is -0.165.
+	local predMass is ship:mass - (1.5 * massLoss * ((alt:radar / ship:verticalspeed))).
+	local weighedMass is (0.31 * ship:mass) + (predMass * 0.69).
+
+	local shipAcc1 is (ship:availablethrust / weighedMass) - (body:mu / body:position:sqrmagnitude).
 	local distance1 is SimSpeed()^2 / (2 * shipAcc1).
 	
 	return distance1.
@@ -473,27 +487,19 @@ function LandHeight1 {
 
 function SimSpeed {
     local time0 is time:seconds.
-	local oldSpeed is ship:airspeed.
+	local oldSpeed is velocity:surface:mag.
+	local predTime is abs(alt:radar / ship:verticalspeed).
 
-	wait 0.
+    local altScale is max(alt:radar * 0.02, 0).
+    local velScale is max(abs(ship:verticalspeed * 0.2), 0).
+    local totalScale is altScale + velScale.
 
-	local deltaSpeed is ((ship:airspeed - oldSpeed) / (time:seconds - time0)).
-    print "DECELERATION: " + deltaSpeed at (0, 9).
+	wait 0.01.
 
-	return ship:airspeed - abs(deltaSpeed) - DragValue().
-}
+	local deltaSpeed is min(0, ((velocity:surface:mag - oldSpeed) * (time:seconds - time0))).
+	local predSpeed is min(oldSpeed, velocity:surface:mag + (deltaSpeed * predTime * totalScale)).
 
-function DragValue {
-	local vel0 is ship:velocity:surface.
-
-    local grav is (body:mu / body:position:sqrmagnitude) * -up:vector. // * ship:mass.
-    local accel is ship:facing:forevector * ship:availablethrust * throttle.
-
-    local drag1 is (ship:velocity:surface - (vel0 + grav + accel)).
-        
-    // local dragForce is ((mass0 + ship:mass) / 2) * vdot(drag1, ship:facing:forevector).
-
-    return drag1:mag * 0.5.
+	return predSpeed.
 }
 
 // CALCULATED IMPACT ETA [crdts:Nuggreat]

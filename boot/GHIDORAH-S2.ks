@@ -1,4 +1,4 @@
-// GHIDORAH v1.0 -- SECOND STAGE
+// GHIDORAH v1.0.2 -- SECOND STAGE
 
 clearScreen.
 // core:part:getmodule("kOSProcessor"):doEvent("Open Terminal").
@@ -59,10 +59,10 @@ function MainDocking {
 function StartUp {
 
     // run prerequitistes (load functions to cpu)
-    if (exists("0:/TUNDRA/NOGUI.ks")) { runoncepath("0:/TUNDRA/NOGUI.ks"). } 
-    else { runoncepath("0:/TUNDRA/missionParameters"). }
-    runoncepath("0:/TUNDRA/libGNC").
-    runoncepath("0:/TUNDRA/launchWindow").
+    if (exists("0:/TUNDRA/GHIDORAH/NOGUI.ks")) { runoncepath("0:/TUNDRA/GHIDORAH/NOGUI.ks"). } 
+    else { runoncepath("0:/TUNDRA/GHIDORAH/missionParameters"). }
+    runoncepath("0:/TUNDRA/GHIDORAH/libGNC").
+    runoncepath("0:/TUNDRA/GHIDORAH/launchWindow").
 
     wait until goForLaunch = true.
 
