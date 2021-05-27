@@ -47,19 +47,3 @@
 	- Input the target's name, if there is no ship found the script will crash.
 
 If you instead want a GUI-less launch, rename NOGUI.**txt** to NOGUI.**ks**.
-
-# Changelog:
-- **v1.0.2**
-	- \+ Added 1-3-1 engine sequence for the landing burn
-	- % Fixed drag function incorrectly reading data
-- **v1.0.1**
-	- % Fixed a bug where the bottom of the ocean is targeted instead of the droneship
-	- % Small tweak to ASDS mode
-	- **v1.0.0**
-	- \+ Mission parameters GUI
-	- \+ Heavy config and dual booster landing capability
-	- % PID rebalance
-	- % Small ASDS landing rework to prepare for a bigger rework 
-	- % Plane matching now happens at higher orbit to conserve Δv
-	- \- Trajectories dependency
-	- \- Deorbit script ( heavily hardcoded )
