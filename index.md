@@ -1,7 +1,7 @@
- # Durp9 Launch and Landing Software
+# Durp9 Launch and Landing Software
  Kerbal Operating System **(kOS)** scripts for Tundra Exploration rockets. The script is capable of bringing payload into target orbit and target inclination. It also has the capability of landing Ghidorah 9's first stage and side boosters into the target coordinates.
-
- # Manual:
+ 
+# Manual:
  - **Boot Scripts**
 	- Put the boot scripts to their designated stages.
  - **Mission Parameters**
@@ -22,7 +22,7 @@
 	- Side Booster A - **ABooster** - Booster nosecone
 	- Side Booster B - **BBooster** - Booster nosecone
 	   
- # GUI:
+# GUI:
  - **Landing Profile**
  	- RTLS - Return To Launch Site *( \<7t payload )*
  	- ASDS - Autonomous Spaceport Drone Ship *( \<9t payload )*
@@ -42,8 +42,7 @@
  
  If you instead want a GUI-less launch, rename NOGUI.**txt** to NOGUI.**ks**.
 
-	
- # Changelog:
+# Changelog:
 - **v1.0.1**
 	- % fixed a bug where the bottom of the ocean is targeted instead of the droneship
 	- % small tweak to ASDS mode
@@ -56,17 +55,17 @@
  	- \- Trajectories dependency
  	- \- Deorbit script ( heavily hardcoded )
 
- # Disclaimer:
+# Disclaimer:
  - The script is tested and balanced to work on 2.5x rescale system.
  - ASDS profile works best in equatorial launches.
  - Watch Quasy's video in how to setup ASDS landings here: https://youtu.be/nxGF1jf14Lo.
 
- # Known Bugs:
+# Known Bugs:
  - Circulation maneuver execution causes the second stage overstreer.
  - Drag function incorrectly reading values, will result in very high touchdown speed. *(lithobraking)*
  - Script broken when using full expend mode on Heavy variant.
 	
- # Planned:
+# Planned:
  - Yet another ASDS landing rework
  	- third rework will be made to increase landing success chance in inclined launches
  	- this is also a preparation for the Gojira rocket
