@@ -27,6 +27,10 @@
 - **Landing Burn**
 	- Booster is coming in too hot
 		- the computers will attempt a 1-3-1 engine sequence if coming in faster than expected. if this failed, contact dev.
+	- So, when will the boosters make a 1-3-1 engine sequence execution?
+		- when it thinks it will not stick the landing using only one
+		- when it is tagged as a Heavy side booster
+		- when the payload is beyond the recommended weight
 
 
 *will be updated as more bugs are found*
