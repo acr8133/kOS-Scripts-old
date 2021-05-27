@@ -1,37 +1,74 @@
-## Welcome to GitHub Pages
+ # Durp9 Launch and Landing Software
+ Kerbal Operating System **(kOS)** scripts for Tundra Exploration rockets. The script is capable of bringing payload into target orbit and target inclination. It also has the capability of landing Ghidorah 9's first stage and side boosters into the target coordinates.
 
-You can use the [editor on GitHub](https://github.com/acr8133/TUNDRA-Launch-Script/edit/gh-pages/index.md) to maintain and preview the content for your website in Markdown files.
+ # Manual:
+ - **Boot Scripts**
+	- Put the boot scripts to their designated stages.
+ - **Mission Parameters**
+	- When the rocket is loaded on the pad, a GUI will appear. Set your target parameters in the spaces, the script will try its best to put your payload into orbit.
+	- If you want to dock, toggle the **Rendezvous?** button then put in your target ship's name in the space beside it.
+	- **Note: Inputting invalid characters ( ex: strings instead of scalars ) in the GUI will result to script crashing.**
+	- If you dont want to use the GUI, see the next section for instructions.  
+ - **Docking**
+	- When docking, change the nametag of your port and the target's port to **"APAS"**.
+ - **Action Groups**
+	- AG1 - Toggle engine modes
+	- AG2 - Soot shaders
+	- AG3 - Heavy booster engine toggles
+	- AG4 - Rodan shroud
+	- AG5 - Trunk decouple
+ - **Nametags (BOOSTER - NAMETAG - PART)**
+	- Core - **VC-13B** - Interstage
+	- Side Booster A - **ABooster** - Booster nosecone
+	- Side Booster B - **BBooster** - Booster nosecone
+	   
+ # GUI:
+ - **Landing Profile**
+ 	- RTLS - Return To Launch Site *( \<7t payload )*
+ 	- ASDS - Autonomous Spaceport Drone Ship *( \<9t payload )*
+ 	- Heavy - Dual RTLS + Core ASDS *( \<15t payload )*
+ 	- Expend - No recovery *( >15t payload )*
+ - **Payload Mass (kg)**
+ 	- The script will actually work even if payload mass is wrong. For efficient launches, set this to the correct value.
+ - **Target Orbit (km / deg)**
+ 	- Only capable of circular orbits, 0° for equatorial and 90° for polar orbits, go higher for retrograde orbits.
+ 	- Inclination will be overwritten if the ship is set to rendezvous to a target.
+ - **Payload Type**
+ 	- Gigan
+    - Rodan
+    - Fairing *( also use this when launching Gigan XL )*
+ - **Rendezvous and Docking**
+ 	- Input the target's name, if there is no ship found the script will crash.
+ 
+ If you instead want a GUI-less launch, rename NOGUI.**txt** to NOGUI.**ks**.
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+	
+ # Changelog:
+- **v1.0.1**
+	- % fixed a bug where the bottom of the ocean is targeted instead of the droneship
+	- % small tweak to ASDS mode
+- **v1.0.0**
+	- \+ Mission parameters GUI
+ 	- \+ Heavy config and dual booster landing capability
+ 	- % PID rebalance
+ 	- % Small ASDS landing rework to prepare for a bigger rework 
+	- % Plane matching now happens at higher orbit to conserve Δv
+ 	- \- Trajectories dependency
+ 	- \- Deorbit script ( heavily hardcoded )
 
-### Markdown
+ # Disclaimer:
+ - The script is tested and balanced to work on 2.5x rescale system.
+ - ASDS profile works best in equatorial launches.
+ - Watch Quasy's video in how to setup ASDS landings here: https://youtu.be/nxGF1jf14Lo.
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
-
-```markdown
-Syntax highlighted code block
-
-# Header 1
-## Header 2
-### Header 3
-
-- Bulleted
-- List
-
-1. Numbered
-2. List
-
-**Bold** and _Italic_ and `Code` text
-
-[Link](url) and ![Image](src)
-```
-
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
-
-### Jekyll Themes
-
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/acr8133/TUNDRA-Launch-Script/settings/pages). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
-
-### Support or Contact
-
-Having trouble with Pages? Check out our [documentation](https://docs.github.com/categories/github-pages-basics/) or [contact support](https://support.github.com/contact) and we’ll help you sort it out.
+ # Known Bugs:
+ - Circulation maneuver execution causes the second stage overstreer.
+ - Drag function incorrectly reading values, will result in very high touchdown speed. *(lithobraking)*
+ - Script broken when using full expend mode on Heavy variant.
+	
+ # Planned:
+ - Yet another ASDS landing rework
+ 	- third rework will be made to increase landing success chance in inclined launches
+ 	- this is also a preparation for the Gojira rocket
+ - 1-3-1 Engine landing sequence
+ - Gojira ( Starship and Superheavy )
