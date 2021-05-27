@@ -27,3 +27,6 @@
 - **Landing Burn**
 	- Booster is coming in too hot
 		- the computers will attempt a 1-3-1 engine sequence if coming in faster than expected. if this failed, contact dev.
+
+
+*will be updated as more bugs are found*
