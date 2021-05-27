@@ -1,11 +1,11 @@
 # Manual:
  - **Required Mods**
- 	- Tundra Explorations
- 	- kOSForAll
- 		- *adds kOS core to control pods directly*
- 	- MechJeb
- 		- *mechjeb removes engine spool from tundra engines*
- 		- *but you want the spool? don't worry, the script has pseudo spool function built into it*
+	- Tundra Explorations
+	- kOSForAll
+		- *adds kOS core to control pods directly*
+	- MechJeb
+		- *mechjeb removes engine spool from tundra engines*
+		- *but you want the spool? don't worry, the script has pseudo spool function built into it*
  - **Boot Scripts**
 	- Put the boot scripts to their designated stages.
  - **Mission Parameters**
@@ -41,8 +41,8 @@
  	- Inclination will be overwritten if the ship is set to rendezvous to a target.
  - **Payload Type**
  	- Gigan
-    - Rodan
-    - Fairing *( also use this when launching Gigan XL )*
+ 	- Rodan
+ 	- Fairing *( also use this when launching Gigan XL )*
  - **Rendezvous and Docking**
  	- Input the target's name, if there is no ship found the script will crash.
  
