@@ -1,4 +1,4 @@
- # Manual:
+# Manual:
  - **Required Mods**
  	- Tundra Explorations
  	- kOSForAll
@@ -28,7 +28,7 @@
  - **Droneship**
  	- Watch Quasy's video on how to setup ASDS landings here: https://youtu.be/nxGF1jf14Lo.
 	   
- # GUI:
+# GUI:
  - **Landing Profile**
  	- RTLS - Return To Launch Site *( \<7t payload )*
  	- ASDS - Autonomous Spaceport Drone Ship *( \<9t payload )*
@@ -48,7 +48,7 @@
  
  If you instead want a GUI-less launch, rename NOGUI.**txt** to NOGUI.**ks**.
 
- # Changelog:
+# Changelog:
  - **v1.0.2**
  	- \+ Added 1-3-1 engine sequence for the landing burn
  	- % Fixed drag function incorrectly reading data
@@ -64,16 +64,16 @@
  	- \- Trajectories dependency
  	- \- Deorbit script ( heavily hardcoded )
 
- # Disclaimer:
+# Disclaimer:
  - The script is tested and balanced to work on 2.5x rescale system.
  - ASDS profile works best in equatorial launches.
 
- # Known Bugs:
+# Known Bugs:
  - Circulation maneuver execution causes the second stage overstreer.
  - Script broken when using full expend mode on Heavy variant.
  - NOGUI missing variables.
 	
- # Planned:
+# Planned:
  - Yet another ASDS landing rework
  	- third rework will be made to increase landing success chance in inclined launches
  	- this is also a preparation for the Gojira rocket
