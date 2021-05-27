@@ -18,11 +18,13 @@ Several links are provided below.
 - ASDS profile works best in equatorial launches.
 
 # Known Bugs:
+- No soot on reentry
 - Circulation maneuver execution causes the second stage overstreer.
 - Script broken when using full expend mode on Heavy variant.
 - NOGUI missing variables.
 
 # Planned:
+- Automatic soot toggle for the boosters
 - Yet another ASDS landing rework
 	- third rework will be made to increase landing success chance in inclined launches
 	- this is also a preparation for the Gojira rocket
