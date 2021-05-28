@@ -329,7 +329,7 @@ function AtmoGNC {
 
 		set landApprox to LandHeight1().
 
-		set forceSwitch to true.	// forces 1-3-1 on Heavy config or too much payload
+		set forceSwitch to false.	// forces 1-3-1 on Heavy config or too much payload, or debug
 		set burnMult to 1.
 		if ((payloadMass > maxPayload) or (profile = "Heavy") or forceSwitch) {
 			set forceSwitch to true.
