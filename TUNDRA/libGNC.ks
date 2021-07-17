@@ -74,6 +74,15 @@ function TargetBinormal {
     return vcrs((ves:position - ves:body:position):normalized, OrbitTangent(ves)):normalized.
 }
 
+function GroundBinormal {
+    parameter LZvec is LZ.
+    
+    local groundVel is LZvec:velocity:orbit:normalized.
+    local groundToBody is LZvec:altitudeposition(LZvec:terrainheight - 1) - LZvec:altitudeposition(LZvec:terrainheight).
+
+    return vcrs(groundVel, groundToBody):normalized.
+}
+
 function OrbitLAN {
     parameter ves is ship.
 
@@ -86,45 +95,45 @@ function OrbitTangent {
     return ves:velocity:orbit:normalized.
 }
 
-function RelativeNodalVector {
-    parameter OrbitBinormal is OrbitBinormal().
-    parameter TargetBinormal is TargetBinormal().
+function RelAng {
+    parameter orbitnrm is OrbitBinormal(), targetnrm is TargetBinormal().
 
-    return vcrs(OrbitBinormal, TargetBinormal):normalized.
+    return vang(orbitnrm, targetnrm).
 }
 
-function AngToRAN {
-    parameter OrbitBinormal is OrbitBinormal().
-    parameter TargetBinormal is TargetBinormal().
+function NodeAngle {
+    parameter mode, orbitnrm is OrbitBinormal(), tgtnrm is TargetBinormal().
 
-    local joinVector is RelativeNodalVector(OrbitBinormal, TargetBinormal).
-    local angle is vang(-body:position:normalized, joinVector).
-    local signVector is vcrs(-body:position, joinVector).
-    local sign is vdot(OrbitBinormal, signVector).
-    if sign < 0 {
-        set angle to angle * -1.
-    }
-    return angle.
-}
+    local ANjoinVec is vcrs(orbitnrm, tgtnrm):normalized.
+    local ANang is vang(-body:position:normalized, ANjoinVec).
+    local ANsignVec is vcrs(-body:position, ANjoinVec).
+    local ANsign is vdot(OrbitBinormal, ANsignVec).
 
-function AngToRDN {
-    parameter OrbitBinormal is OrbitBinormal().
-    parameter TargetBinormal is TargetBinormal().
+    local DNjoinVec is -vcrs(orbitnrm, tgtnrm):normalized.
+    local DNang is vang(-body:position:normalized, DNjoinVec).
+    local DNsignVec is vcrs(-body:position, DNjoinVec).
+    local DNsign is vdot(OrbitBinormal, DNsignVec).
 
-    local joinVector is -RelativeNodalVector(OrbitBinormal, TargetBinormal).
-    local angle is vang(-body:position:normalized, joinVector).
-    local signVector is vcrs(-body:position, joinVector).
-    local sign is vdot(OrbitBinormal, signVector).
-    if sign < 0 {
-        set angle to angle * -1.
-    }
-    return angle.
+    if (ANsign < 0) { set ANang to ANang * -1. }
+    if (DNsign < 0) { set DNang to DNang * -1. }
+
+    if (mode = "AN") { return ANang. }
+    else { return DNang. }
 }
 
 function TimeToNode {
-	local TA0 is ship:orbit:trueanomaly. 
-	local ANTA is mod(360 + TA0 + AngToRAN(), 360).	// TA is True Anomaly
-	local DNTA is mod(ANTA + 180, 360).
+    parameter targettype.
+
+    local TA0 is ship:orbit:trueanomaly.
+
+    local ANTA is 0.
+    if (targettype = "ship") {
+        set ANTA to mod(360 + TA0 + NodeAngle("AN"), 360).
+    } else {
+        // ground
+        set ANTA to mod(360 + TA0 + NodeAngle("AN", OrbitBinormal(), GroundBinormal()), 360).
+    }
+    local DNTA is mod(ANTA + 180, 360).
 
 	// 1 is AN, 2 is DN
 	local ecc is ship:orbit:eccentricity.
@@ -141,60 +150,79 @@ function TimeToNode {
 	local MA2 is EA2 - ecc * constant:radtodeg * sin(EA2).
 	local t2 is mod(360 + MA2 - MA0, 360) / sqrt(ship:body:mu / SMA^3) / constant:radtodeg + t0.
 
-	return min(t2 - t0, t1 - t0).
+    return min(t2 - t0, t1 - t0).
 }
 
-function NodePlaneChange {
-	local TA0 is ship:orbit:trueanomaly. 
-	local ANTA is mod(360 + TA0 + AngToRAN(), 360).	// TA is True Anomaly
-	local DNTA is mod(ANTA + 180, 360).
+function TimeToAltitude {
+    parameter tgtAlt.
 
+    local TA0 is ship:orbit:trueanomaly.
+    local ecc is ship:orbit:eccentricity.
 	local SMA is ship:orbit:semimajoraxis.
-	local ecc is ship:orbit:eccentricity.
 
-	local rad1 is SMA * (1 - ecc * cos(ANTA)).
-	local rad2 is SMA * (1 - ecc * cos(DNTA)).
+    local ANTA is 0.
+    set ANTA to AltToTA(SMA, ecc, ship:body, tgtAlt)[0].
+    local DNTA is AltToTA(SMA, ecc, ship:body, tgtAlt)[1].
 
-	local Vv1 is sqrt(ship:body:mu * ((2 / rad1) - (1 / SMA))).
-	local Vv2 is sqrt(ship:body:mu * ((2 / rad2) - (1 / SMA))).
+	// 1 is AN, 2 is DN
+	local t0 is time:seconds.
+	local MA0 is mod(mod(t0 - ship:orbit:epoch, ship:orbit:period) / ship:orbit:period * 360 + ship:orbit:meananomalyatepoch, 360).
 
-	local angChange1 is (2 * Vv1 * sin(Trig() / 2)).
-	local angChange2 is (2 * Vv2 * sin(Trig() / 2)).
+	local EA1 is mod(360 + arctan2(sqrt(1 - ecc^2) * sin(ANTA), ecc + cos(ANTA)), 360).
+	local MA1 is EA1 - ecc * constant:radtodeg * sin(EA1).
+	local t1 is mod(360 + MA1 - MA0, 360) / sqrt(ship:body:mu / SMA^3) / constant:radtodeg + t0.
 
-	return min(angChange1, angChange2).
+	local EA2 is mod(360 + arctan2(sqrt(1 - ecc^2) * sin(DNTA), ecc + cos(DNTA)), 360).
+	local MA2 is EA2 - ecc * constant:radtodeg * sin(EA2).
+	local t2 is mod(360 + MA2 - MA0, 360) / sqrt(ship:body:mu / SMA^3) / constant:radtodeg + t0.
+
+    return min(t2 - t0, t1 - t0).
+}
+
+function PlaneMnv {
+    parameter mode, targettype is "ship", orbitnrm is OrbitBinormal().
+
+    local tgtInc is 0.
+    if (targettype = "ship") { 
+        set tgtInc to target:orbit:inclination.
+        set tNode to time:seconds + TimeToNode("ship"). }
+    else { 
+        set tgtInc to LZ:lat.
+        set tNode to time:seconds + TimeToNode("coords").
+    }
+
+    local startVel is velocityAt(ship, tNode):orbit.
+    local bodyAtNode is vcrs(orbitnrm, startVel).
+    local finalVel is 0.
+    
+    if (mode = "ship") {
+        set finalVel to startVel * angleAxis(RelAng(), bodyAtNode).
+    } else {
+        set finalVel to startVel * angleAxis(RelAng(OrbitBinormal(), GroundBinormal()), bodyAtNode).
+    }
+
+    local deltaVel is finalVel - startVel.
+    local nrm is vxcl(startVel, deltaVel).
+
+    print ship:orbit:inclination at (0, 5).
+    print tgtInc at (0, 6).
+
+    if (mode = "N") { return nrm:mag * DirCorr(). }
+    else if (mode = "D") { return deltaVel. }
+    else { return -(vxcl(nrm, deltaVel):mag). }
 }
 
 function DirCorr {
-    wait 0.
-    if (hasTarget = true) {
-        local dirCorrVal is 1. 
+    if (hasTarget) {
+        local joinVec is vcrs(OrbitBinormal(), TargetBinormal()):normalized.
+        local signVec is vcrs(-body:position, joinVec).
+        local sign is vDot(OrbitBinormal(), signVec).
 
-        if (abs(AngToRAN()) > abs(AngToRDN())) { set dirCorrVal to 1. }
-        else { set dirCorrVal to -1. }
-
-        return dirCorrVal.
-    } else { return 1. }
-}
-
-function Trig {
-	parameter res is "angChange".	// add parameters as much as you can squeeze out in this trigonometry relations
-
-    local i1 is ship:orbit:inclination.
-    local i2 is target:orbit:inclination.
-    local o1 is ship:orbit:lan.
-    local o2 is target:orbit:lan.
-
-    local a1 is sin(i1) * cos(o1).
-    local a2 is sin(i1) * sin(o1).
-    local a3 is cos(i1).
-
-    local b1 is sin(i2) * cos(o2).
-    local b2 is sin(i2) * sin(o2).
-    local b3 is cos(i2).
-
-	local angChange is arccos((a1 * b1) + (a2 * b2) + (a3 * b3)).
-
-	if (res = "angChange") { return angChange. }
+        if (sign > 0) { return -1. }
+        else { return 1. }
+    } else {
+        return 1.
+    }
 }
 
 // HOHMANN TRANSFER TIMING AND DELTAV
@@ -217,21 +245,25 @@ function PhaseAngle {
 }
 
 function Hohmann {
-	parameter burn.
+	parameter burn, orbHeight is ship:apoapsis.
 
-	if (burn = "raise") {
+    if (burn = "circ") {
+
+        local velAtAlt is velocityAt(ship, time:seconds + TimeToAltitude(orbHeight)):orbit.
+        local bodyAtInt is positionAt(ship, time:seconds + TimeToAltitude(orbHeight)) - body:position.
+
+        local targetVelMag is sqrt(ship:body:mu / (ship:orbit:body:radius + orbHeight)).
+        local targetVel is vxcl(bodyAtInt, velAtAlt):normalized * targetVelMag.
+        
+        return (targetVel - velAtAlt).
+    } else { // raise should be performed at a phase angle
+
 		local targetSMA is ((target:altitude + ship:altitude + (ship:body:radius * 2)) / 2).
 		local targetVel is sqrt(ship:body:mu * (2 / (ship:body:radius + ship:altitude) - (1 / targetSMA))).
     	local currentVel is sqrt(ship:body:mu * (2 / (ship:body:radius + ship:altitude) - (1 / ship:orbit:semimajoraxis))).
 	
-		return (targetVel - currentVel). 
-	}
-	else if (burn = "circ") {
-		local targetVel is sqrt(ship:body:mu / (ship:orbit:body:radius + ship:orbit:apoapsis)).
-    	local currentVel is sqrt(ship:body:mu * ((2 / (ship:body:radius + ship:orbit:apoapsis) - (1 / ship:orbit:semimajoraxis)))).
-    	
-		return (targetVel - currentVel).
-	}		
+		return velocityAt(ship, time:seconds + PhaseAngle()):orbit:normalized * (targetVel - currentVel).
+    }
 }
 
 function ExecNode {
@@ -248,7 +280,7 @@ function ExecNode {
     if (topOffset = false) {
         lock normVec to vcrs(ship:prograde:vector, -body:position).
     } else {
-        lock normVec to body:position.
+        lock normVec to -body:position.
     }
     
     lock steering to lookdirup(
@@ -259,13 +291,12 @@ function ExecNode {
     local maxAcc is maxT / ship:mass.
     local burnDuration is nd:deltav:mag / maxAcc.
     kuniverse:timewarp:warpto(time:seconds + nd:eta - (burnDuration / 2 + 60)).
-    wait until nd:eta <= (burnDuration / 2 + 30).
+    wait until nd:eta <= (burnDuration / 2 + 50).
     
 	if (isRCS = true) rcs on.
 	else rcs off.
 
     lock nv to nd:deltav:normalized.    //makes sure that the parameter set will update
-    set dv0 to nd:deltav.
 
     if (ctrlfacing = "fore") {
         lock steering to lookdirup(
@@ -296,7 +327,7 @@ function ExecNode {
         else
             RCSTranslate(nv).
 
-        if (nd:deltav:mag < 0.1)
+        if (nd:deltav:mag < 0.085)
         {
             set ship:control:neutralize to true.
             set throt to 0.
@@ -314,6 +345,15 @@ function ExecNode {
     wait 5.
 }
 
+function VecToNode {
+  parameter v1, nodeTime IS time:seconds.
+
+  local compPRO is velocityAt(SHIP,nodeTime):orbit.
+  local compNRM is vcrs(compPRO, positionAt(SHIP,nodeTime)):normalized.
+  local compRAD is vcrs(compNRM,compPRO):normalized.
+  RETURN node(nodeTime, VDOT(v1, compRAD), VDOT(v1, compNRM), VDOT(v1, compPRO:normalized)).
+}
+
 function RCSTranslate {
     parameter tarVec. // tarDist.
     if tarVec:mag > 1 set tarVec to tarVec:normalized.
@@ -326,43 +366,42 @@ function RCSTranslate {
     wait 0.
 }
 
-function BurnLengthRCS {
-    // gets the time for rcs to complete a maneuver
-    parameter thrust, dv.
-
-    local rcsship is ship:partstagged("Cmodule")[0].
-    local mod is rcsship:getmodule("ModuleRCSFX").
-    local isp is mod:getfield("rcs isp").
-    local g is constant:g0.
-    local dMass is ship:mass / (constant:e^ (dv / (isp * g))).
-    local flowRate is thrust / (isp * g).
-
-    local dT is (ship:mass - dMass) / flowRate.
-
-    return dT.
-}
-
 // RENDEZVOUS AND DOCKING
 
 function MatchPlanes {
-    local planeCorrection is 1.
+    parameter targettype is "ship", shiptype is "dragon".
 
-    if (hastarget = false) { wait until hasTarget = true. }
+    if (targettype = "ship") {
+        if (hastarget = false) { wait until hasTarget = true. }
+        wait until TimeToNode("ship") < 60.
 
-    wait until TimeToNode() < 30 + BurnLengthRCS(1, NodePlaneChange()).
+        set matchNode to node(time:seconds + TimeToNode("ship"),
+        0,
+        PlaneMnv("N"), 
+        PlaneMnv("P")).
 
-    if (abs(AngToRAN()) > abs(AngToRDN())) { set planeCorrection to 1. }
-    else { set planeCorrection to -1. }
+    } else {
+        wait until TimeToNode("coords") < 60.
 
-    set matchNode to node(time:seconds + TimeToNode(), 0, (NodePlaneChange() * planeCorrection), 0).
+        set matchNode to node(time:seconds + TimeToNode("coords"),
+        0,
+        PlaneMnv("N", "coords"), 
+        PlaneMnv("P", "coords")).
+    }
+    
     add matchNode.
 
-    ExecNode(false, 6, true, "top").
+    if (shiptype = "dragon") {
+        ExecNode(false, 6, true, "top").
+    } else {
+        ExecNode(true).
+    }
+    
 }
 
 function Burn1 {
     wait 10.
-    set burn1Node to node(time:seconds + PhaseAngle(), 0, 0, Hohmann("raise")).
+    set burn1Node to VecToNode(Hohmann("raise"), time:seconds + PhaseAngle()).
     add burn1Node.
 
     ExecNode(false, 6, true).
@@ -370,7 +409,7 @@ function Burn1 {
 
 function Burn2 {
     wait 10.
-    set burn1Node to node(time:seconds + eta:apoapsis, 0, 0, Hohmann("circ")).
+    set burn1Node to VecToNode(Hohmann("circ"), time:seconds + eta:apoapsis).
     add burn1Node.
 
     ExecNode(false, 6, true).
@@ -569,11 +608,29 @@ function Impact {
     parameter nav.
 
     local impData is ImpactUT().
-    local impLatLng is GroundTrack(POSITIONAT(SHIP,impData["time"]),impData["time"]).
-
-    if (nav = "lat") { return impLatLng:lat. }
-    else if (nav = "lng") { return impLatLng:lng. }
-    else { return sqrt(((impLatLng:lat - LZ:lat)^2) + ((impLatLng:lng - LZ:lng)^2)). }
+    
+    if (alt:radar > 200) {
+        if (recoveryMode = "Heavy") {
+            local impLatLng0 is GroundTrack(POSITIONAT(SHIP,impData["time"]),impData["time"]).
+            if (nav = "lat") { return impLatLng0:lat. }
+            else if (nav = "lng") { return impLatLng0:lng. }
+            else if (nav = "latlng") { return impLatLng0. }
+            else { return sqrt(((impLatLng0:lat - LZ:lat)^2) + ((impLatLng0:lng - LZ:lng)^2)). }
+        } else {
+            local impLatLng1 is addons:tr:impactpos.
+            if (nav = "lat") { return impLatLng1:lat. }
+            else if (nav = "lng") { return impLatLng1:lng. }
+            else if (nav = "latlng") { return impLatLng1. }
+            else { return sqrt(((impLatLng1:lat - LZ:lat)^2) + ((impLatLng1:lng - LZ:lng)^2)). }
+        }
+    } else {
+        local impLatLng2 is ship:geoposition.
+        if (nav = "lat") { return impLatLng2:lat. }
+        else if (nav = "lng") { return impLatLng2:lng. }
+        else if (nav = "latlng") { return impLatLng2. }
+        else { return sqrt(((impLatLng2:lat - LZ:lat)^2) + ((impLatLng2:lng - LZ:lng)^2)). }
+    }
+    
 }
 
 function DeltaImpact { 

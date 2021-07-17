@@ -1,10 +1,7 @@
-// GHIDORAH v1.0.2 -- FIRST STAGE
+// GHIDORAH v2.0.0a -- BOOSTER
 
 clearScreen.
-// core:part:getmodule("kOSProcessor"):doEvent("Open Terminal").
-
-// run prerequitistes (load functions to cpu)
-runoncepath("0:/TUNDRA/GHIDORAH/libGNC").
+core:part:getmodule("kOSProcessor"):doEvent("Open Terminal").
 
 // FROM MISSION PARAMETERS
 until false {
@@ -12,33 +9,37 @@ until false {
 		print "CORE EMPTY" at (0, 3).
 	} else {
 		set received to core:messages:pop.
-		set targetInc to received:content:tgtInc.
-		set targetOrb to received:content:tgtOrb.
-		set profile to received:content:prf.
-		set payloadMass to received:content:pMass.
-		set maxPayload to received:content:maxPmass.
+		set targetInc to received:content:m_targetInc.
+		set targetOrb to received:content:m_targetOrb.
+		set recoveryMode to received:content:m_recoveryMode.
+		set payloadMass to received:content:m_payloadMass.
+		set maxPayload to received:content:m_maxPayload.
 
-		if (profile = "Heavy") {
-			if (core:tag = "BBooster") { set LZ to received:content:lzcoords1. }
-			else if (core:tag = "ABooster"){ set LZ to received:content:lzcoords. }
-			else { set LZ to received:content:lzcoords0. }
+		if (recoveryMode = "Heavy") {
+			if (core:tag = "SIDEB") { set LZ to received:content:m_lzcoords2. }
+			else if (core:tag = "SIDEA"){ set LZ to received:content:m_lzcoords1. }
+			else { set LZ to received:content:m_lzcoords0. }
 		}
-		else if (profile = "ASDS") {
-			set LZ to received:content:lzcoords0.
+		else if (recoveryMode = "ASDS") {
+			set LZ to received:content:m_lzcoords0.
 		}
 		else {
-			set LZ to received:content:lzcoords1.
+			set LZ to received:content:m_lzcoords1.
 		}
 		
-		set MECOangle to received:content:mecoAng.
-		set reentryHeight to received:content:rntryAlt.
-		set reentryVelocity to received:content:rntryVel.
-		set AoAlimiter to received:content:aoalim.
+		set MECOangle to received:content:m_MECOangle.
+		set reentryHeight to received:content:m_reentryHeight.
+		set reentryVelocity to received:content:m_reentryVelocity.
+		set AoAlimiter to received:content:m_AoAlimiter.
 		print "First Data Received" at (0, 9).
 		break.
 	}
 	wait 0.
 }
+
+// run prerequitistes (load functions to cpu)
+if (recoveryMode = "Full") { shutdown. }
+runoncepath("0:/TUNDRA/libGNC").
 
 // FROM LAUNCH WINDOW
 until false {
@@ -52,9 +53,9 @@ until false {
 	}
 }
 
-// system registrys
 until (goForLaunch) { wait 0. }
 
+// system registrys
 local eqtrDirChoose is saveEqtrFunc().
 eqtrDirChoose:set(DirCorr()).
 local azmthDirChoose is saveAzmthFunc().
@@ -69,10 +70,6 @@ list processors in corelist.
 local startcorecount is corelist:length.
 local currentcorecount is startcorecount.
 
-if (profile = "Full") {
-	shutdown.
-}
-
 until currentcorecount <= 2 {
     list processors in corelist.
     set currentcorecount to corelist:length.
@@ -83,10 +80,32 @@ until currentcorecount <= 2 {
 StartUp().
 Main().
 
+function StartUp {
+
+    // control variables
+    set throt to 0.
+    lock throttle to throt.
+
+    // steeringmanager re-tune
+    set steeringmanager:rollts to 20.
+	set steeringmanager:pitchpid:kd to steeringmanager:pitchpid:kd + 5.
+	set steeringmanager:yawpid:kd to steeringmanager:yawpid:kd + 5.
+
+    // initialize variables
+    set deltaTraj to 0.
+    set landingOvershoot to 0.175.
+	set burnOvershoot to 1.25.
+	set ctrlOverride to ((maxPayload - payloadMass) / 10000) * 3.125.
+    lock trueAltitude to ship:bounds:bottomaltradar.
+    
+    PIDvalue().
+    PIDload().
+}
+
 function Main {
-	// function calls
+	
 	core:part:controlfrom().
-	if (profile = "RTLS" or core:tag = "ABooster" or core:tag = "BBooster") {	
+	if (recoveryMode = "RTLS" or core:tag = "SIDEA" or core:tag = "SIDEB") {	
 		Flip1(0.75, 180, 25).
 		Boostback().
 		Flip2(60).
@@ -107,38 +126,13 @@ function Main {
 	}
 }
 
-function StartUp {
-
-    // control variables
-    set throt to 0.
-    lock throttle to throt.
-
-    // steeringmanager re-tune
-    set steeringmanager:rollts to 20.
-	set steeringmanager:pitchpid:kd to steeringmanager:pitchpid:kd + 5.
-	set steeringmanager:yawpid:kd to steeringmanager:yawpid:kd + 5.
-
-    // profile variables
-    set landingOvershoot to 0.175.
-	set burnOvershoot to 1.25.
-	set ctrlOverride to ((maxPayload - payloadMass) / 10000) * 3.125.
-
-    // booster variables
-    lock trueAltitude to ship:bounds:bottomaltradar.
-
-    // init
-    set deltaTraj to 0.
-    PIDvalue().
-    PIDload().
-}
-
 function Flip1 {
 	parameter flipPower, finalAttitude, unlockAngle.
 	// parameters x,y,z -  counter at z, stop at y, at power x
 
 	local tangentVector is heading(targetAzimuth, 0):vector.
-
-    rcs on.
+    rcs on. 
+	if (recoveryMode = "Heavy" ) { toggle AG4. }
 	
     lock steering to lookdirup(
         heading(targetAzimuth, MECOangle):vector,
@@ -152,7 +146,7 @@ function Flip1 {
     wait 5.
 	set ship:control:yaw to -1 * flipPower.
 
-	until (vang(ship:facing:forevector, tangentVector) >= 180 - (unlockAngle * 1.5)) {
+	until (vang(ship:facing:forevector, tangentVector) >= 180 - (unlockAngle * 1.5)) { wait 0.
 		print "TANGENT ANGLE: " + vang(ship:facing:forevector, tangentVector) at (0, 4).
 		if (vang(ship:facing:forevector, tangentVector) > 90) {
 			set ship:control:roll to (RollAlign()).
@@ -177,13 +171,10 @@ function Flip1 {
 
 function Boostback {
 
-	// set bvd to vecDraw(ship:position, LZ:position,rgb(1,1,0), "lz", 1.0, true).
-	// set bvd:vecupdater to { return LZ:position. }.
-
     rcs off.
     lock BBvec to LZ:altitudeposition(ship:altitude + 750).
     
-	if (profile = "RTLS" or core:tag = "ABooster" or core:tag = "BBooster") {
+	if (recoveryMode = "RTLS" or core:tag = "SIDEA" or core:tag = "SIDEB") {
 		lock steering to lookdirup(
         	vxcl(up:vector, ship:srfretrograde:vector:normalized):normalized *
 			angleAxis(0, ship:facing:topvector),
@@ -202,7 +193,7 @@ function Boostback {
 
 	EngineSpool(1).
 
-	if (profile = "RTLS" or core:tag = "ABooster" or core:tag = "BBooster") {
+	if (recoveryMode = "RTLS" or core:tag = "SIDEA" or core:tag = "SIDEB") {
 		lock throt to max(0.125, Impact("dist") - 0.05).
 		until DeltaImpact() > 0 { print "DELTA: " + round(DeltaImpact(), 3) + "       " at (0, 5). }
 		wait (burnOvershoot). 
@@ -215,7 +206,6 @@ function Boostback {
 			print LZ:lng at (0, 14). 
 		}
 		set LZ to tempLZ.
-		// ASDS profile needs to work differently
 	}
     EngineSpool(0).
 }
@@ -237,7 +227,7 @@ function Flip2 {
 	unlock steering.
 	wait 0.1.
 	
-	if (profile = "RTLS" or core:tag = "ABooster" or core:tag = "BBooster") {
+	if (recoveryMode = "RTLS" or core:tag = "SIDEA" or core:tag = "SIDEB") {
 		set ship:control:yaw to 1.
 		wait 3.5.
 		set ship:control:yaw to 0.
@@ -278,10 +268,7 @@ function Reentry1 {
 
 	wait until RetroDiff("UP") >= holdAngle.
 	steeringmanager:resettodefault().
-
 	sas off.
-
-	// set avd to vecDraw(ship:position, ship:facing:topvector,rgb(1,0,0), "TOPVEC", 1.0, true).
 
 	lock steering to lookdirup(
 		ship:srfretrograde:vector:normalized, 
@@ -299,9 +286,7 @@ function Reentry1 {
 		heading(180, 0):vector).
 
 	EngineSpool(1).
-
-	// UN-COMMENT LINE BELOW TO TURN ON SOOT FROM TUNDRA
-	// toggle AG2.
+	toggle AG2.
 	
 	wait until ship:airspeed < reentryVelocity.
 	EngineSpool(0).
@@ -311,13 +296,29 @@ function AtmoGNC {
 	EngineSwitch(1, 2).
 	lock dRange to sqrt((LZ:lng - ship:geoposition:lng)^2 + (LZ:lat - ship:geoposition:lat)^2) * 1000.
 	
+	lock LATvector to vxcl(up:vector, (
+		latlng(ship:geoPosition:lat - 0.01, ship:geoPosition:lng):position
+		)):normalized.
+
+    lock LNGvector to vxcl(up:vector, (
+		latlng(ship:geoPosition:lat, ship:geoPosition:lng + 0.01):position
+		)):normalized.
+
+	set avd to vecDraw(ship:position, LATvector, rgb(0,0,1), " ", 1.0, true).
+
 	lock steering to lookdirup((
 		ship:srfretrograde:vector:normalized * 10 +
-		ship:facing:topvector:normalized * AlatError * (AoAlimiter) +
-		ship:facing:starvector:normalized * AlngError * -(AoAlimiter)),
-		heading(180, 0):vector).
+		LATvector * AlatError * (AoAlimiter) +
+		LNGvector * AlngError * -(AoAlimiter)),
+		heading(180, 0):vector).	
+		
+	// lock steering to lookdirup((
+	// 	ship:srfretrograde:vector:normalized * 10 +
+	// 	ship:facing:topvector:normalized * AlatError * (AoAlimiter) +
+	// 	ship:facing:starvector:normalized * AlngError * -(AoAlimiter)),
+	// 	heading(180, 0):vector).
 
-	until alt:radar < 4000 {
+	until alt:radar < 4000 { wait 0.
 		print "TRAJ-LZ: " + (Impact("lng") - ship:geoposition:lng) at (0, 6).
 		print "TARGET DISTANCE: " + dRange at (0, 10).
 
@@ -331,9 +332,9 @@ function AtmoGNC {
 
 		set forceSwitch to false.	// forces 1-3-1 on Heavy config or too much payload, or debug
 		set burnMult to 1.
-		if ((payloadMass > maxPayload) or (profile = "Heavy") or forceSwitch) {
+		if ((payloadMass > maxPayload) or (recoveryMode = "Heavy") or forceSwitch) {
 			set forceSwitch to true.
-			set burnMult to 0.666.
+			set burnMult to 0.555567.
 		}
 
 		DebugPrint().
@@ -343,7 +344,7 @@ function AtmoGNC {
 function Land {
 	lock landApprox to LandHeight1().
 
-	until trueAltitude <= (landApprox * burnMult) {
+	until trueAltitude <= (landApprox * burnMult) or alt:radar < 2500 { // 'or' acts as fail-safe condition
 		DebugPrint().
 	}
 
@@ -484,9 +485,9 @@ function PIDvalue {
 	set AlngError to 0.
 	
 	// engine gimbal
-	set hvrP to 17.
-	set hvrI to 0.5.
-	set hvrD to 2.5.
+	set hvrP to 18.
+	set hvrI to 1.
+	set hvrD to 2.25.
 	
 	set HlatP to hvrP.
 	set HlatI to hvrI.
@@ -551,6 +552,3 @@ function DebugPrint {
 }
 
 until false {wait 0.}
-
-// TODO
-// FORCE 1-3-1 ON HEAVY AND HEAVY PAYLOADS
