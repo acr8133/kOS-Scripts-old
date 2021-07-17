@@ -1,28 +1,35 @@
 # Manual:
 - **Required Mods**
 	- Tundra Explorations
+	- Trajectories
 	- kOSForAll
 		- *adds kOS core to control pods directly*
 	- MechJeb
 		- *mechjeb removes engine spool from tundra engines*
 		- *but you want the spool? don't worry, the script has pseudo spool function built into it*
 - **Boot Scripts**
-	- Put the boot scripts to their designated stages.
+	- Put the first stage script at the interstage
+	- Second stage script should be added to the payload's core
 - **Mission Parameters**
-	- When the rocket is loaded on the pad, a GUI will appear. Set your target parameters in the spaces, the script will try its best to put your payload into orbit.
-	- If you want to dock, toggle the **Rendezvous?** button then put in your target ship's name in the space beside it.
-	- **Note: Inputting invalid characters ( ex: strings instead of scalars ) in the GUI will result to script crashing.**
-	- If you dont want to use the GUI, see the next section for instructions.  
+	- payloadMass - Payload Mass (kilograms)
+	- payloadType - Payload Type (fairing, rodan, gigan)
+	- targetOrb - Target Orbit (meters)
+	- targetInc - Target Inclination (degrees)
+	- recoveryMode - Recovery Mode *(check Landing Profile section)*
+	- willRendezvous - Rendezvous and Dock (true, false)
+	- targetName - Target Name (leave empty if willRendezvous = false)
+	- LZ0-LZ2 - Preset Landing Zone Coordinates (latlng geocoordinates)
+	- LZ - Target Landing Zone
 - **Docking**
 	- When docking, change the nametag of your port and the target's port to **"APAS"**.
 - **Action Groups**
 	- AG1 - Toggle engine modes
 	- AG2 - Soot shaders
 	- AG3 - Heavy booster engine toggles
-	- AG4 - Rodan shroud
-	- AG5 - Trunk decouple
+	- AG4 - Rodan shroud / Gojira flap deploy
+	- AG5 - Trunk decouple / Gojira flap front extend, rear retract
 - **Nametags (BOOSTER - NAMETAG - PART)**
-	- Core - **VC-13B** - Interstage
+	- Core - **CORE** - Interstage
 	- Side Booster A - **ABooster** - Booster nosecone
 	- Side Booster B - **BBooster** - Booster nosecone
 - **Droneship**
@@ -30,20 +37,19 @@
 	   
 # GUI:
 - **Landing Profile**
-	- RTLS - Return To Launch Site *( \<7t payload )*
-	- ASDS - Autonomous Spaceport Drone Ship *( \<9t payload )*
-	- Heavy - Dual RTLS + Core ASDS *( \<15t payload )*
-	- Expend - No recovery *( >15t payload )*
+	- RTLS - Return To Launch Site
+	- ASDS - Autonomous Spaceport Drone Ship
+	- Heavy - Dual RTLS + Core ASDS
+	- Expend - No recovery
+	- RTLS_SS - Starship RTLS
 - **Payload Mass (kg)**
-	- The script will actually work even if payload mass is wrong. For efficient launches, set this to the correct value.
+	- The script will work even if payload mass is wrong. For efficient launches, set this to the accurate value.
 - **Target Orbit (km / deg)**
 	- Only capable of circular orbits, 0° for equatorial and 90° for polar orbits, go higher for retrograde orbits.
 	- Inclination will be overwritten if the ship is set to rendezvous to a target.
 - **Payload Type**
 	- Gigan
 	- Rodan
-	- Fairing *( also use this when launching Gigan XL )*
+	- Fairing *( also used by Gigan XL and Starship)*
 - **Rendezvous and Docking**
 	- Input the target's name, if there is no ship found the script will crash.
-
-If you instead want a GUI-less launch, rename NOGUI.**txt** to NOGUI.**ks**.
