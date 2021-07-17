@@ -30,8 +30,8 @@
 	- AG5 - Trunk decouple / Gojira flap front extend, rear retract
 - **Nametags (BOOSTER - NAMETAG - PART)**
 	- Core - **CORE** - Interstage
-	- Side Booster A - **ABooster** - Booster nosecone
-	- Side Booster B - **BBooster** - Booster nosecone
+	- Side Booster A - **SIDEA** - Booster nosecone
+	- Side Booster B - **SIDEB** - Booster nosecone
 - **Droneship**
 	- Watch Quasy's video on how to setup ASDS landings here: https://youtu.be/nxGF1jf14Lo.
 	   
