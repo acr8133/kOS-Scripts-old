@@ -7,6 +7,8 @@
 	- MechJeb
 		- *mechjeb removes engine spool from tundra engines*
 		- *but you want the spool? don't worry, the script has pseudo spool function built into it*
+	- Module Manager
+		- *custom patch is required, add the said patch to your Gamedata folder*
 - **Boot Scripts**
 	- Put the first stage script at the interstage
 	- Second stage script should be added to the payload's core
