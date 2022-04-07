@@ -1,1 +1,1 @@
-Documentation here: https://acr8133.github.io/TUNDRA-Launch-Script/
+Documentation here: https://acr8133.github.io/kOS-Scripts/
